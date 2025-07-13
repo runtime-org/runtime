@@ -1,0 +1,348 @@
+// lib/tools.js
+import { Type } from '@google/genai';
+
+export const ActionDeclarations = [
+  // ===== TASK COMPLETION =====
+  {
+    name: 'done',
+    description: 'Complete task - with return text and if the task is finished (success=True) or not yet completely finished (success=False), because last step is reached',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        success: {
+          type: Type.BOOLEAN,
+          description: 'Whether the task was completed successfully'
+        },
+        text: {
+          type: Type.STRING,
+          description: 'Description of what was accomplished or final result'
+        }
+      },
+      required: ['success', 'text']
+    }
+  },
+
+  // ===== NAVIGATION ACTIONS =====
+  {
+    name: 'search_google',
+    description: 'Search the query in Google, the query should be in keywords, concrete and not vague or super long.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        query: {
+          type: Type.STRING,
+          description: 'The search query to look for in Google'
+        }
+      },
+      required: ['query']
+    }
+  },
+  {
+    name: 'go_to_url',
+    description: 'Navigate to URL in the current tab',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        url: {
+          type: Type.STRING,
+          description: 'The URL to navigate to'
+        }
+      },
+      required: ['url']
+    }
+  },
+  {
+    name: 'go_back',
+    description: 'Go back in browser history',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {}
+    }
+  },
+  {
+    name: 'go_forward',
+    description: 'Go forward in browser history',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {}
+    }
+  },
+  {
+    name: 'refresh_page',
+    description: 'Refresh/reload the current page',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {}
+    }
+  },
+
+  // ===== TIMING/WAITING =====
+  {
+    name: 'wait',
+    description: 'Wait for x seconds default 3',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        seconds: {
+          type: Type.NUMBER,
+          description: 'Number of seconds to wait (default: 3)'
+        }
+      }
+    }
+  },
+
+  // ===== ELEMENT INTERACTION =====
+  {
+    name: 'click_element_by_index',
+    description: 'Click element by index from the page context',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        index: {
+          type: Type.NUMBER,
+          description: 'The index number of the element to click'
+        }
+      },
+      required: ['index']
+    }
+  },
+  {
+    name: 'input_text',
+    description: 'Input text into a input interactive element by index',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        index: {
+          type: Type.NUMBER,
+          description: 'The index number of the input element'
+        },
+        text: {
+          type: Type.STRING,
+          description: 'The text to input into the element'
+        }
+      },
+      required: ['index', 'text']
+    }
+  },
+  // ===== SCROLLING =====
+  {
+    name: 'scroll_down',
+    description: 'Scroll down the page by pixel amount - if none is given, scroll one page',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        amount: {
+          type: Type.NUMBER,
+          description: 'Number of pixels to scroll down (optional, defaults to one page height)'
+        }
+      }
+    }
+  },
+  {
+    name: 'scroll_up',
+    description: 'Scroll up the page by pixel amount - if none is given, scroll one page',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        amount: {
+          type: Type.NUMBER,
+          description: 'Number of pixels to scroll up (optional, defaults to one page height)'
+        }
+      }
+    }
+  },
+  {
+    name: 'scroll_to_text',
+    description: 'If you dont find something which you want to interact with, scroll to it by searching for text content',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        text: {
+          type: Type.STRING,
+          description: 'The text content to scroll to'
+        }
+      },
+      required: ['text']
+    }
+  },
+
+  // ===== DROPDOWN INTERACTIONS =====
+  {
+    name: 'get_dropdown_options',
+    description: 'Get all options from a native dropdown select element',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        index: {
+          type: Type.NUMBER,
+          description: 'The index number of the dropdown element'
+        }
+      },
+      required: ['index']
+    }
+  },
+  {
+    name: 'select_dropdown_option',
+    description: 'Select dropdown option for interactive element index by the text of the option you want to select',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        index: {
+          type: Type.NUMBER,
+          description: 'The index number of the dropdown element'
+        },
+        text: {
+          type: Type.STRING,
+          description: 'The exact text of the option to select'
+        }
+      },
+      required: ['index', 'text']
+    }
+  },
+
+  // ===== PAGE STATE/CONTEXT =====
+  {
+    name: 'get_simplified_page_context',
+    description: 'Get a comprehensive overview of the current page with interactive elements, accessibility tree, and optional screenshot',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        include_screenshot: {
+          type: Type.BOOLEAN,
+          description: 'Whether to include a base64 screenshot (default: true)'
+        },
+        max_elements: {
+          type: Type.NUMBER,
+          description: 'Maximum number of interactive elements to return (default: 50)'
+        }
+      }
+    }
+  },
+
+  // ===== RUNTIME CONTROL =====
+  {
+    name: 'ask_user',
+    description: 'Ask the user a question when clarification is needed',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        question: {
+          type: Type.STRING,
+          description: 'The question to ask the user'
+        }
+      },
+      required: ['question']
+    }
+  },
+  {
+    name: "small_talk",
+    description: "Engage in natural conversation with users regarding non-automation topics, maintaining a professional assistant demeanor while providing concise explanations of actions taken",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {}
+    }
+  },
+];
+
+export const QueryAnalysisDeclaration = [
+  {
+    name: 'analyze_query_strategy',
+    description: 'Analyze a complex research query and determine if it should be split into parallel sub-queries or handled as a single sequential workflow',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        strategy: {
+          type: Type.STRING,
+          description: 'The chosen strategy: either "sequential" for sequential workflow or "parallel" for concurrent research',
+          enum: ['sequential', 'parallel']
+        },
+        queries: {
+          type: Type.ARRAY,
+          description: 'Array of focused search queries (1 for sequential strategy, multiple for parallel)',
+          items: {
+            type: Type.STRING,
+            description: 'A specific, focused search query that can be researched independently'
+          }
+        },
+        dependencies: {
+          type: Type.ARRAY,
+          description: 'Array of dependency relationships between queries',
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              query_index: {
+                type: Type.NUMBER,
+                description: 'Index of the query that has dependencies'
+              },
+              depends_on: {
+                type: Type.ARRAY,
+                description: 'Array of query indices that this query depends on',
+                items: {
+                  type: Type.NUMBER,
+                  description: 'Index of a dependency query'
+                }
+              }
+            },
+            required: ['query_index', 'depends_on']
+          }
+        }
+      },
+      required: ['strategy', 'queries', 'dependencies']
+    }
+  }
+];
+
+export const SynthesisDeclaration = [
+  {
+    name: 'synthesize_results',
+    description: 'Synthesize multiple research results into a comprehensive final answer',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        synthesized_answer: {
+          type: Type.STRING,
+          description: 'The comprehensive, well-structured answer that combines all research findings'
+        },
+        key_findings: {
+          type: Type.ARRAY,
+          description: 'List of key findings from the research',
+          items: {
+            type: Type.STRING,
+            description: 'A key finding or insight'
+          }
+        },
+        confidence_level: {
+          type: Type.NUMBER,
+          description: 'Confidence level in the synthesis (0.0 to 1.0)'
+        },
+        gaps_or_limitations: {
+          type: Type.STRING,
+          description: 'Any gaps or limitations in the synthesized answer'
+        }
+      },
+      required: ['synthesized_answer', 'key_findings', 'confidence_level', 'gaps_or_limitations']
+    }
+  }
+];
+
+export const AvailableActions = [
+  "done",
+  "search_google", 
+  "go_to_url",
+  "go_back",
+  "go_forward",
+  "refresh_page",
+  "wait",
+  "click_element_by_index",
+  "input_text",
+  "scroll_down",
+  "scroll_up", 
+  "scroll_to_text",
+  "get_dropdown_options",
+  "select_dropdown_option",
+  "get_simplified_page_context",
+  "get_visible_text",
+  "ask_user",
+  "small_talk",
+]
+

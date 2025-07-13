@@ -1,0 +1,39 @@
+
+
+export const createPagePool = ({ browser, maxTabs = 10}) => {
+  let active = 0;
+  const waiters = [];
+
+  /*
+  * acquire a page from the pool
+  */
+  async function acquire() {
+    if (active >= maxTabs) {
+      await new Promise(function(res) { waiters.push(res); });
+    }
+    active += 1;
+    return browser.newPage();
+  }
+
+  /*
+  * release a page back to the pool
+  */
+  async function release(page) {
+    try { await page.close(); } catch { /* ignore */ }
+    active -= 1;
+    const next = waiters.shift();
+    if (next) next();          // wake one waiter
+  }
+
+  /*
+  * return a page from the pool
+  */
+   return async function pageManager() {
+    const page = await acquire();
+    /*
+    * auto release when the caller is finished
+    */
+   page.once('close', () => release(page));
+   return page;
+   }
+};
