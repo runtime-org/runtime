@@ -1,6 +1,7 @@
 import { callLLM } from "./llm.engine";
 import { QueryAnalysisDeclaration } from "./tools";
 import { getFnCall } from "./task.execution.helpers";
+import { FEW_SHOT } from "./query.fewshot";
 
 export async function splitQuery(query) {
     /*
@@ -13,7 +14,9 @@ export async function splitQuery(query) {
         tools: [{ functionDeclarations: [QueryAnalysisDeclaration] }]
     }
     const analysisDate = new Date().toISOString().split('T')[0];
-    const queryAnalysisPrompt = `Query: "${query}"
+    const prompt = `${FEW_SHOT}
+
+User-Query: "${query}"
 Date: ${analysisDate}
 
 Goal: Always use the tool 'analyze_query_strategy' to analyze the query and return the queries.
@@ -28,7 +31,7 @@ If you do not understand the query, return the original query as-is without requ
     */
     const response = await callLLM({
         modelId: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts: [{ text: queryAnalysisPrompt }] }],
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config,
         isQuerySplitter: true
     });

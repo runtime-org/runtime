@@ -247,18 +247,17 @@ export const ActionDeclarations = [
 export const QueryAnalysisDeclaration = [
   {
     name: 'analyze_query_strategy',
-    description: 'Analyze a complex research query and determine if it should be split into parallel sub-queries or handled as a single sequential workflow',
+    description: 'Decide if the user query must be answered by (a) one sequential chain where later sub-queries depend on earlier answers, or (b) parallel sub-queries that share no data.  Return explicitt dependenccies.',
     parameters: {
       type: Type.OBJECT,
       properties: {
         strategy: {
           type: Type.STRING,
-          description: 'The chosen strategy: either "sequential" for sequential workflow or "parallel" for concurrent research',
+          description: 'The chosen strategy: "sequential" or "parallel"',
           enum: ['sequential', 'parallel']
         },
         queries: {
           type: Type.ARRAY,
-          description: 'Array of focused search queries (1 for sequential strategy, multiple for parallel)',
           items: {
             type: Type.STRING,
             description: 'A specific, focused search query that can be researched independently'

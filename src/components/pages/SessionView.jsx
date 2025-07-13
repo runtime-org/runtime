@@ -10,7 +10,7 @@ import System from '../ui/System';
 
 import { useAppState }  from '../../hooks/useAppState';
 
-import { splitQuery }         from '../../lib/querySplitter';
+import { splitQuery }         from '../../lib/query.splitter';
 import { runWorkflow }     from '../../lib/workflow.runner';
 import { taskEventEmitter }   from '../../lib/emitters';
 
