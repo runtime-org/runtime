@@ -18,7 +18,16 @@ npm install
 npm run tauri dev
 ```
 
-Current workflow reimplementation
+Current workflow reimplementation (in progress)
+ - [x] enhanced query splitter 
+ - [x] runWorkflow
+ - [ ] runSequentialTask
+ - [x] planGenerator 
+ - [x] stepTranslator
+ - [x] handlePuppeteerAction
+ - [ ] emit progress
+ - [ ] test and integration
+
 
 ```ascii
 ┌───────────────────────────────────────────────────────────────┐
