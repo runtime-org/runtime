@@ -1,12 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 
 import { callLLM } from "./llm.engine";
-// @ts-ignore
 import { handlePuppeteerAction } from "./pptr";
 import { systemPrompt } from "./prompt";
 import { ActionDeclarations } from "./tools";
 import { PromptContext } from './prompt.schema';
-import { RunOptions } from "./task.execution.schemas";
+import { RunOptions, SeqRunOptions } from "./task.execution.schemas";
 import { 
     getFnCall, 
     emit, 
@@ -14,19 +13,191 @@ import {
     semanticExplanation,
     semanticPptrExplanation
 } from "./task.execution.helpers";
+import { makeMemory, SharedMemory } from "./task.execution.memory";
+import { stepTranslator, planGenerator } from "./plan.orchestrator";
 
-export async function runSequentialTask(opts: RunOptions) {
+
+export async function runSequentialTask(opts: SeqRunOptions) {
     const {
-        originalQuery, subQuery, taskId,
-        browserInstance, pageManager,
+        taskId,
+        queries, 
+        dependencies, 
+        pageManager,
+        originalQuery, 
+        browserInstance, 
         model = 'gemini-2.5-flash'
     } = opts;
 
-    let history: any[] = [];
+    /*
+    ** shared memory across queries tasks
+    */
+    const mem: SharedMemory = makeMemory();
 
     /*
-    ** emit
+    ** iterate through SQ1, SQ2, ... SQn
     */
+    for (let qIdx = 0; qIdx < queries.length; qIdx++) {
+        const subQuery = queries[qIdx];
+
+        /*
+        ** build a deterministic step list
+        */
+        const steps = await planGenerator({ 
+            subQuery, 
+            queries, 
+            dependencies, 
+            results: queries.map((_, i) => mem.get(`SQ${i}:result`))
+        });
+
+        /*
+        ** conversation context for stepTranslator
+        */
+        let history: any[] = [];
+
+        const currentPage = await pageManager();
+        const promptContext: PromptContext = {
+            originalQuery,
+            subQuery,
+            currentUrl: currentPage?.url() ?? '',
+        }
+
+        /*
+        ** run steps
+        */
+        for (let s=0; s<steps.length; s++) {
+            const sentence = steps[s];
+
+            const toolCall = await stepTranslator(sentence, history);
+            if (!toolCall) {
+                opts.onError?.(`Translator failed at step ${s} for ${subQuery}`);
+                return;
+            }
+
+            if (toolCall.name === 'done') {
+                emit("task_action_complete", {
+                    taskId,
+                    action: 'done',
+                    status: 'completed',
+                    speakToUser: toolCall.args?.text ?? '',
+                    error: null
+                })
+                if (toolCall.args?.text) {
+                    mem.set(`SQ${qIdx}:result`, toolCall.args?.text);
+                }
+                break;
+            }
+
+            /*
+            ** run puppeteer action with one retry
+            */
+            const explanation = semanticExplanation(toolCall.name, toolCall.args);
+            const actionId = uuidv4();
+            emit("task_action_start", {
+                taskId,
+                action: toolCall.name,
+                speakToUser: explanation,
+                actionId
+            })
+
+            let pptrRes = await handlePuppeteerAction({
+                actionDetails: {
+                    action: toolCall.name,
+                    parameters: toolCall.args,
+                    taskId
+                },
+                currentPage,
+                browserInstance
+            })
+
+            if (!pptrRes.success) {
+                /*
+                ** retry once after 2s
+                */
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                pptrRes = await handlePuppeteerAction({
+                    actionDetails: {
+                        action: toolCall.name,
+                        parameters: toolCall.args,
+                        taskId
+                    },
+                    currentPage,
+                    browserInstance
+                })
+            }
+
+            emit("task_action_complete", {
+                taskId,
+                action: toolCall.name,
+                speakToUser: semanticPptrExplanation(toolCall.name, toolCall.args),
+                status: pptrRes.success ? 'success' : 'failed',
+                error: pptrRes.success ? undefined : pptrRes.error,
+                actionId
+            })
+
+            if (!pptrRes.success) {
+                opts.onError?.(pptrRes.error || 'browser action failed');
+                return;
+            }
+
+            /*
+            ** stash interesting output for later queries
+            */
+            if (pptrRes?.data) {
+                mem.set(`SQ${qIdx}:step${s}:text`, pptrRes.data?.visibleText);
+            }
+
+            /*
+            ** update translator history
+            */
+            const semanticPptrResult = semanticPptrExplanation(toolCall.name, toolCall.args);
+            history.push(
+                { role:'assistant', parts:[ { functionCall: { name: toolCall.name, args: toolCall.args } } ] },
+                { role:'user', parts:[{text: semanticPptrResult}] }
+            );
+
+            /*
+            ** cap to 20 messages
+            */
+            if (history.length > 20) history = history.slice(-20);
+        }
+    }
+
+    /*
+    ** emit completion
+    */
+    emit("task_action_complete", {
+        taskId, 
+        action: 'done', 
+        status: 'completed', 
+        speakToUser: 'success', 
+        error: null 
+    });
+    opts.onDone?.("Workflow finished");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // --------------------------------------------------------------------------
+
+    /*
+    /*
+    ** emit
+
     emit('task_update', { 
         taskId, action: "start", speakToUser: subQuery, status: "initial"
     });
@@ -42,11 +213,11 @@ export async function runSequentialTask(opts: RunOptions) {
 
     /*
     ** run the cycle -> start the sub task
-    */
+    *
     while (step < 30) {
         /*
         ** prepare the request payload
-        */
+        *
         const contents = [
             { role: "user", parts: [ { text: subQuery } ] },
             ...trimHistory(history)
@@ -54,7 +225,7 @@ export async function runSequentialTask(opts: RunOptions) {
 
         const config = {
             temperature: 0.0,
-            maxOutputTokens: 2048,
+            : 2048,
             mode: 'ANY',
             systemInstruction: systemPrompt(promptContext),
             tools: [{ functionDeclarations: [ActionDeclarations] }]
@@ -63,7 +234,7 @@ export async function runSequentialTask(opts: RunOptions) {
         /*
         ** thinking
         ** send LLM action generation request with Action Declarations as tools
-        */
+        *
         const llmActionId = uuidv4();
         emit('task_action_start', { taskId, action: '__thinking__', speakToUser: 'Thinking...', actionId: llmActionId });
         const response = await callLLM({ modelId: model, contents, config });
@@ -72,7 +243,7 @@ export async function runSequentialTask(opts: RunOptions) {
 
         /*
         ** process the response
-        */
+        *
         const fn = getFnCall(response);
         
         if (!fn) {
@@ -85,7 +256,7 @@ export async function runSequentialTask(opts: RunOptions) {
 
         /*
         ** terminal call
-        */
+        *
         if (fn.name === 'done') {
             emit('task_action_complete', { taskId, action:'done', parameters:fn.args, status:'completed' });
             opts.onDone?.(fn.args?.text ?? '');
@@ -95,7 +266,7 @@ export async function runSequentialTask(opts: RunOptions) {
 
         /*
         ** execute pptr action
-        */
+        *
         const explanation = semanticExplanation(fn.name, fn.args);
         const pptrActionId = uuidv4();
         emit('task_action_start', { taskId, action: fn.name, speakToUser: explanation, actionId: pptrActionId });
@@ -109,24 +280,18 @@ export async function runSequentialTask(opts: RunOptions) {
 
         /*
         ** error on browser failure
-        */
+        *
         if (!puppeteerRes.success) {
             opts.onError?.(puppeteerRes.error || 'browser action failed');
             return;
         }
-        if (puppeteerRes?.data?.visibleText) {
-            console.log("visibleText", puppeteerRes?.data?.visibleText)
-        }
 
         const semanticPptrResult = semanticPptrExplanation(fn.name, fn.args);
-        history.push(
-            { role:'assistant', parts:[ { functionCall: { name: fn.name, args: fn.args } } ] },
-            { role:'user', parts:[{text: semanticPptrResult}] }
-        );
+        mem.push(`SQ${qIdx}:result`, puppeteerRes.result);
 
         /*
         ** cap to 20 messages
-        */
+        *
         let cloneHistory = JSON.parse(JSON.stringify(history));
         if (cloneHistory.length > 20) {
             cloneHistory = cloneHistory.slice(-20);
@@ -135,12 +300,4 @@ export async function runSequentialTask(opts: RunOptions) {
     
         step += 1;
     }
-
-    // console.log(`--- speakToUser: done executing`);
-    // emit('task_action_complete', {
-    //     taskId, action: 'done',
-    //     status: 'success',
-    //     speakToUser: 'success',
-    //     error:  null
-    // });
-}
+    */

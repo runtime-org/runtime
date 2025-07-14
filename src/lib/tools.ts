@@ -218,6 +218,14 @@ export const ActionDeclarations = [
       }
     }
   },
+  {
+    name: "get_visible_text",
+    description: "Get the visible text of the current page",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {}
+    }
+  },
 
   // ===== RUNTIME CONTROL =====
   {
@@ -247,38 +255,35 @@ export const ActionDeclarations = [
 export const QueryAnalysisDeclaration = [
   {
     name: 'analyze_query_strategy',
-    description: 'Decide if the user query must be answered by (a) one sequential chain where later sub-queries depend on earlier answers, or (b) parallel sub-queries that share no data.  Return explicitt dependenccies.',
+    description: 
+        "Break the user query into an ordered SEQUENTIAL chain of sub-queries. " +
+        "Return each sub-query and an explicit dependencies list so the caller  " + 
+        "knows which earlier answers are required for each later step.",
     parameters: {
       type: Type.OBJECT,
       properties: {
-        strategy: {
-          type: Type.STRING,
-          description: 'The chosen strategy: "sequential" or "parallel"',
-          enum: ['sequential', 'parallel']
-        },
         queries: {
           type: Type.ARRAY,
           items: {
             type: Type.STRING,
-            description: 'A specific, focused search query that can be researched independently'
+            description: 'One concrete, self-contained sub-query.'
           }
         },
         dependencies: {
           type: Type.ARRAY,
-          description: 'Array of dependency relationships between queries',
+          description: 'For every sub-query that relies on previous answers, specify its index and the indexes it depends on.',
           items: {
             type: Type.OBJECT,
             properties: {
               query_index: {
                 type: Type.NUMBER,
-                description: 'Index of the query that has dependencies'
+                description: 'Index of the dependent sub-query'
               },
               depends_on: {
                 type: Type.ARRAY,
-                description: 'Array of query indices that this query depends on',
                 items: {
                   type: Type.NUMBER,
-                  description: 'Index of a dependency query'
+                  description: 'Indices of prerequisite sub-queries'
                 }
               }
             },
@@ -286,7 +291,7 @@ export const QueryAnalysisDeclaration = [
           }
         }
       },
-      required: ['strategy', 'queries', 'dependencies']
+      required: ['queries', 'dependencies']
     }
   }
 ];

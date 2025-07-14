@@ -1,9 +1,30 @@
 import { callLLM } from "./llm.engine";
 import { QueryAnalysisDeclaration } from "./tools";
 import { getFnCall } from "./task.execution.helpers";
-import { FEW_SHOT } from "./query.fewshot";
+import { QUERY_FEW_SHOT } from "./query.fewshot";
 
 export async function splitQuery(query) {
+    const analysisDate = new Date().toISOString().split('T')[0];
+    const prompt = `
+User-Query: "${query}"
+
+Goal: Always use the tool 'analyze_query_strategy' to break the query into
+SEQUENTIAL sub-queries. Independent information-gathering steps must be placed
+*earlier* in the list so later steps can reference their answers.
+
+### ADDITIONAL GUIDANCE
+- Produce the MINIMAL number of sub-queries needed.
+- Specify "dependencies" so each later query lists the indices it relies on.
+  If a step is logically independent but you still want strict execution
+  order, list the index of the previous step in "depends_on".
+- If a step is independent, list the index of the previous step in "depends_on".
+
+${QUERY_FEW_SHOT}
+
+Date: ${analysisDate}
+(Please use this date for accurate search results)
+`;
+
     /*
     ** config setup
     */
@@ -13,19 +34,6 @@ export async function splitQuery(query) {
         mode: 'ANY',
         tools: [{ functionDeclarations: [QueryAnalysisDeclaration] }]
     }
-    const analysisDate = new Date().toISOString().split('T')[0];
-    const prompt = `${FEW_SHOT}
-
-User-Query: "${query}"
-Date: ${analysisDate}
-
-Goal: Always use the tool 'analyze_query_strategy' to analyze the query and return the queries.
-
-If the query is complex, split it into parallel independent sub-queries. Otherwise, use a sequential query approach.
-If you do not understand the query, return the original query as-is without requesting clarification from the user.
-(Please use this date for accurate search results)
-`;
-
     /*
     ** call LLM
     */
@@ -42,14 +50,9 @@ If you do not understand the query, return the original query as-is without requ
     const call = getFnCall(response);
     if (!call) return [query];
 
-    const { args, name } = call;
-
-    /*
-    ** return queries
-    */
-    if (name === 'analyze_query_strategy') {
-        return args.queries;
+    const resp = {
+        queries: call?.args?.queries ?? [query],
+        dependencies: call?.args?.dependencies ?? []
     }
-
-    return [query];
+    return resp;
 }

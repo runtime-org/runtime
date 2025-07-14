@@ -11,16 +11,16 @@ export async function runWorkflow(opts: RunnerOptions) {
     originalQuery, 
     sessionId, 
     queries, 
-    concurrency = queries.length, 
+    dependencies,
     browserInstance,
   } = opts;
 
-  const pageManager = createPagePool({ browser: browserInstance, maxTabs: concurrency });
+  const pageManager = createPagePool({ browser: browserInstance });
 
   /*  
   ** create workflow
   */
-  const wf = makeWorkflow({ originalQuery, sessionId, queries, concurrency });
+  makeWorkflow({ originalQuery, sessionId, queries, dependencies });
 
   /* 
   ** emit
@@ -31,32 +31,23 @@ export async function runWorkflow(opts: RunnerOptions) {
   /*
   ** create and run a runner for each sub-query
   */
-  let running = 0, idx = 0;
   const next = async () => {
-    if (idx >= queries.length) return;
-    if (running >= concurrency) return;
-
-    const subQuery = queries[idx++];
-
-    running++;
     await runSequentialTask({
       originalQuery,
-      subQuery,
+      queries,
       taskId,
       sessionId,
       pageManager,
+      dependencies,
       browserInstance
     });
 
-    running--;
-    await next();
   };
 
   /*
   ** start
   */
-  const starters = Array.from({ length: concurrency }).map(() => next());
-  await Promise.all(starters);
+  await next();
 
   /*
   ** update

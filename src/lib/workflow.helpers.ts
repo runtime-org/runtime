@@ -6,11 +6,12 @@ export function makeWorkflow(args: {
   originalQuery: string;
   sessionId: string;
   queries: string[];
-  dependencies?: { query_index: number; depends_on: number[] }[];
-  concurrency?: number;
+  dependencies?: {
+    query_index: number;
+    depends_on: number[];
+  }[];
 }): Workflow {
-  const { originalQuery, sessionId, queries } = args;
-  const concurrency = args.concurrency ?? Math.min(queries.length, 4); // or totals of queries
+  const { originalQuery, sessionId, queries, dependencies } = args;
 
   // create sub tasks
   const subTasks: Record<string, SubTask> = {};
@@ -21,7 +22,7 @@ export function makeWorkflow(args: {
       query: q,
       queryIndex: i,
       status: 'pending',
-      dependsOn: args.dependencies?.find(d => d.query_index === i)?.depends_on ?? []
+      dependsOn: dependencies?.find(d => d.query_index === i) ? [i] : []
     };
   });
 
@@ -35,8 +36,7 @@ export function makeWorkflow(args: {
       totalTasks: queries.length,
       completedCount: 0,
       failedCount: 0,
-      runningCount: 0,
-      concurrency
+      runningCount: 0
     },
     createdAt: new Date().toISOString(),
     results: {}

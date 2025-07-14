@@ -25,7 +25,6 @@ export interface Workflow {
     completedCount: number;
     failedCount: number;
     runningCount: number;
-    concurrency: number;
   };
   createdAt: string;
   startedAt?: string;
@@ -37,6 +36,9 @@ export interface RunnerOptions {
   originalQuery: string;
   sessionId: string;
   queries: string[];
-  concurrency?: number;
+  dependencies: {
+    query_index: number;
+    depends_on: number[];
+  }[];
   browserInstance: any;
 }

@@ -22,7 +22,7 @@ export function emit(event: string, payload: any) {
 */
 export function trimHistory(
   history: any[],
-  keepLatest = 2 
+  keepLatest = 2
 ) {
     const cleaned = [...history];
 

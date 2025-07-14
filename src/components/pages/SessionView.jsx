@@ -246,7 +246,8 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
       /* 
       * analyze and split the query into sub queries if necessary
       */
-      const queries  = await splitQuery(rawText);
+      const resp  = await splitQuery(rawText);
+      const { queries, dependencies } = resp;
 
       /*
       * run the workflow
@@ -255,7 +256,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
         originalQuery: rawText,
         sessionId: activeSessionId,
         queries,
-        concurrency: queries.length,
+        dependencies,
         browserInstance,
         onDone: (text) => addNewMessage({ type:'system', text }),
         onError: (err) => addNewMessage({ type:'system', text: err, isError:true })
