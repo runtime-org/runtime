@@ -5,9 +5,9 @@ import { Type } from '@google/genai';
 export const PlanDeclaration = {
   name: 'generate_action_plan',
   description: `
-    Producde an ordored array of short sentences that, when executed 
+    Produce an ordered array of short sentences that, when executed 
     in order, will accomplish the sub-query using a web browser. 
-    Sentence MUST NOT mention specific Runtime tools or code.
+    Sentence MUST NOT mention specific Runtime functions or code.
     `,
   parameters: {
     type: Type.OBJECT,

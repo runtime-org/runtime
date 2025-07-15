@@ -31,7 +31,7 @@ export async function planGenerator(opts: PlanOrchestratorOptions): Promise<stri
     /*
     ** build the prompt
     */
-    const prompt = `
+    const prompt = `Generate an action plan for the following query: "${subQuery}".
 ${PLAN_FEW_SHOT}
 
 # CURRENT CONTEXT
@@ -49,6 +49,8 @@ Plan for sub-query (index ${queries.indexOf(subQuery)}):
 
 Return ONLY a generate_action_plan tool call with the "steps" array.
 `;
+    console.log("prompt", prompt);
+
     const config = {
         temperature: 0.0,
         maxOutputTokens: 1024,
