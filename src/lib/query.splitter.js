@@ -41,7 +41,7 @@ Date: ${analysisDate}
         modelId: 'gemini-2.5-flash',
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config,
-        isQuerySplitter: true
+        ignoreFnCallCheck: true
     });
 
     /*

@@ -58,7 +58,8 @@ Return ONLY a generate_action_plan tool call with the "steps" array.
     const resp = await callLLM({ 
         modelId: "gemini-2.5-flash",
         contents: [{ role: "user", parts: [ { text: prompt } ] }],
-        config 
+        config,
+        ignoreFnCallCheck: true
     });
 
     const fn = getFnCall(resp);
@@ -92,7 +93,8 @@ ${step}
             { role: "user", parts: [ { text: prompt } ] },
             ...history
         ],
-        config 
+        config ,
+        ignoreFnCallCheck: true
     });
     const fn = getFnCall(resp);
     return fn ?? {};

@@ -53,6 +53,30 @@ export function trimHistory(
 }
 
 /*
+** push simplified page context to history
+** if the action is not get_simplified_page_context, push the semantic explanation of the call
+** if the action is get_simplified_page_context, push the 60 element of the raw results
+*/
+export function pushHistory(history: any[], toolName: string, args: any, rawResult: any) {
+    
+    let semanticResult;
+    if (toolName === 'get_simplified_page_context') {
+        const userMessage = {
+            role: 'user',
+            parts: [ { functionCall: { name: toolName, args: { ...args, data: rawResult } } } ]
+        }
+        history.push(userMessage);
+    } else {
+        semanticResult = semanticPptrExplanation(toolName, args);
+        const userMessage = {
+            role: 'user',
+            parts: [ { text: semanticResult } ]
+        }
+        history.push(userMessage);
+    }   
+}
+
+/*
 ** semantic explanation of the action
 */
 export function semanticExplanation(toolName: string, args: any ) {

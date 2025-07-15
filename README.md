@@ -23,7 +23,9 @@ Current workflow reimplementation (in progress)
  - [x] runWorkflow
  - [ ] runSequentialTask
  - [x] planGenerator 
+ - [x] planGenerator tested and integrated
  - [x] stepTranslator
+ - [ ] stepTranslator enhancing
  - [x] handlePuppeteerAction
  - [ ] emit progress
  - [ ] test and integration
@@ -58,3 +60,8 @@ Current workflow reimplementation (in progress)
 
 ```
 
+```ascii
+assistant (toolCall)  ──▶  tool (JSON result)  ──▶  assistant (next toolCall) …
+                 ▲                               │
+                 ╰───────────── history ─────────╯
+```

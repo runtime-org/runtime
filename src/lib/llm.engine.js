@@ -4,7 +4,7 @@ import { isRetryableError, isFunctionCall } from './llm.engine.helper.js';
 
 // default support gemini
 export async function callLLM(props) {
-    const { modelId, contents, config = {}, maxRetries = 3, maxFnCallRetries = 5, isQuerySplitter = false } = props;
+    const { modelId, contents, config = {}, maxRetries = 3, maxFnCallRetries = 5, ignoreFnCallCheck = false } = props;
 
     /*
     ** get the api key and get the genAI instance
@@ -37,7 +37,7 @@ export async function callLLM(props) {
             /*
             ** make sure that the response is a valid function call response
             */
-            if (!isQuerySplitter && !isFunctionCall(response)) {
+            if (!ignoreFnCallCheck && !isFunctionCall(response)) {
                 /*
                 ** fn call checking max 5 times recursively
                 */

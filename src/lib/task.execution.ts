@@ -1,15 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 
-import { callLLM } from "./llm.engine";
 import { handlePuppeteerAction } from "./pptr";
-import { systemPrompt } from "./prompt";
-import { ActionDeclarations } from "./tools";
-import { PromptContext } from './prompt.schema';
-import { RunOptions, SeqRunOptions } from "./task.execution.schemas";
+import { SeqRunOptions } from "./task.execution.schemas";
 import { 
-    getFnCall, 
     emit, 
-    trimHistory, 
+    pushHistory, 
+    // trimHistory, 
     semanticExplanation,
     semanticPptrExplanation
 } from "./task.execution.helpers";
@@ -38,6 +34,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
     */
     for (let qIdx = 0; qIdx < queries.length; qIdx++) {
         const subQuery = queries[qIdx];
+        console.log(`SQ${qIdx}: ${subQuery}`);
 
         /*
         ** build a deterministic step list
@@ -48,6 +45,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             dependencies, 
             results: queries.map((_, i) => mem.get(`SQ${i}:result`))
         });
+        console.log("steps", steps);
 
         /*
         ** conversation context for stepTranslator
@@ -55,11 +53,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         let history: any[] = [];
 
         const currentPage = await pageManager();
-        const promptContext: PromptContext = {
-            originalQuery,
-            subQuery,
-            currentUrl: currentPage?.url() ?? '',
-        }
 
         /*
         ** run steps
@@ -68,7 +61,10 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             const sentence = steps[s];
 
             const toolCall = await stepTranslator(sentence, history);
+            console.log(`sentence: ${sentence} -> toolCall: ${JSON.stringify(toolCall)}`);
+
             if (!toolCall) {
+                console.log(`Translator failed at step ${s} for ${subQuery}`);
                 opts.onError?.(`Translator failed at step ${s} for ${subQuery}`);
                 return;
             }
@@ -98,7 +94,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 speakToUser: explanation,
                 actionId
             })
-
+            console.log(`running ${toolCall.name} with args: ${JSON.stringify(toolCall.args)}`);
             let pptrRes = await handlePuppeteerAction({
                 actionDetails: {
                     action: toolCall.name,
@@ -140,20 +136,9 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             }
 
             /*
-            ** stash interesting output for later queries
+            ** push action generated and the result to history
             */
-            if (pptrRes?.data) {
-                mem.set(`SQ${qIdx}:step${s}:text`, pptrRes.data?.visibleText);
-            }
-
-            /*
-            ** update translator history
-            */
-            const semanticPptrResult = semanticPptrExplanation(toolCall.name, toolCall.args);
-            history.push(
-                { role:'assistant', parts:[ { functionCall: { name: toolCall.name, args: toolCall.args } } ] },
-                { role:'user', parts:[{text: semanticPptrResult}] }
-            );
+            pushHistory(history, toolCall.name, toolCall.args, pptrRes.data);
 
             /*
             ** cap to 20 messages

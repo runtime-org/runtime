@@ -5,7 +5,7 @@ Sub-Query: "Who is the author of the book The Great Gatsby?"
   "steps":[
     "Perform a Google search for 'author of book The Great Gatsby'",
     "Retrieve the simplified structure of the current page to locate a reliable link",
-    "Click the first reliable link (e.g., Wikipedia or official site) using index 0",
+    "Click the first reliable link (e.g., Wikipedia or official site) using index",
     "Read the content of the linked page",
     "Return the answer"
   ]
