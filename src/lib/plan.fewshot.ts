@@ -6,7 +6,7 @@ Sub-Query: "Who is the author of the book The Great Gatsby?"
   "steps":[
     "Perform a Google search for 'author of book The Great Gatsby'",
     "Retrieve the simplified structure of the current page to locate a reliable link",
-    "Click the first reliable link (e.g., Wikipedia or official site) using index",
+    "Click the first reliable link (e.g., official site) using index",
     "Read the visible text on the linked page",
     "Return the author's name"
   ]
@@ -68,7 +68,7 @@ Step: "Perform a Google search for 'author of book The Great Gatsby'"
 Step: "Retrieve the simplified structure of the current page to locate a reliable link"
 → tool(get_simplified_page_context, {})
 
-Step: "Click the first reliable link (e.g., Wikipedia or official site) using index 0"
+Step: "Click the first reliable link (e.g., official site) using index 0"
 → tool(click_element_by_index,{
   "index": 0
 })
