@@ -7,7 +7,7 @@ export class DomService {
     // get clickable elements with indices
     async getClickableElementsWithIndices(options = {}) {
         const {
-            highlightElements = true,
+            highlightElements = false,
             maxElements = 50,
             includeHidden = false,
             focusElement = -1
