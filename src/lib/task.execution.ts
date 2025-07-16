@@ -45,7 +45,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             dependencies, 
             results: queries.map((_, i) => mem.get(`SQ${i}:result`))
         });
-        console.log("steps", steps);
+        // console.log("steps", steps);
 
         /*
         ** conversation context for stepTranslator
@@ -61,7 +61,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             const sentence = steps[s];
 
             const toolCall = await stepTranslator(sentence, history);
-            console.log(`sentence: ${sentence} -> toolCall: ${JSON.stringify(toolCall)}`);
+            // console.log(`sentence: ${sentence} -> toolCall: ${JSON.stringify(toolCall)}`);
 
             if (!toolCall) {
                 console.log(`Translator failed at step ${s} for ${subQuery}`);
@@ -70,6 +70,13 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             }
 
             if (toolCall.name === 'done') {
+                console.log("emit task_action_complete", {
+                    taskId,
+                    action: 'done',
+                    status: 'completed',
+                    speakToUser: toolCall.args?.text ?? '',
+                    error: null
+                })
                 emit("task_action_complete", {
                     taskId,
                     action: 'done',
@@ -86,15 +93,21 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             /*
             ** run puppeteer action with one retry
             */
-            const explanation = semanticExplanation(toolCall.name, toolCall.args);
+            // const explanation = semanticExplanation(toolCall.name, toolCall.args);
             const actionId = uuidv4();
+            console.log("emit task_action_start", {
+                taskId,
+                action: toolCall.name,
+                speakToUser: sentence,
+                actionId
+            })
             emit("task_action_start", {
                 taskId,
                 action: toolCall.name,
-                speakToUser: explanation,
+                speakToUser: sentence,
                 actionId
             })
-            console.log(`running ${toolCall.name} with args: ${JSON.stringify(toolCall.args)}`);
+
             let pptrRes = await handlePuppeteerAction({
                 actionDetails: {
                     action: toolCall.name,
@@ -121,10 +134,19 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 })
             }
 
+            console.log("emit task_action_complete", {
+                taskId,
+                action: toolCall.name,
+                speakToUser: sentence,
+                status: pptrRes.success ? 'success' : 'failed',
+                error: pptrRes.success ? undefined : pptrRes.error,
+                actionId
+            })
+
             emit("task_action_complete", {
                 taskId,
                 action: toolCall.name,
-                speakToUser: semanticPptrExplanation(toolCall.name, toolCall.args),
+                speakToUser: sentence,
                 status: pptrRes.success ? 'success' : 'failed',
                 error: pptrRes.success ? undefined : pptrRes.error,
                 actionId
@@ -150,6 +172,13 @@ export async function runSequentialTask(opts: SeqRunOptions) {
     /*
     ** emit completion
     */
+    console.log("emit task_action_complete", {
+        taskId,
+        action: 'done',
+        status: 'completed',
+        speakToUser: 'success',
+        error: null
+    })
     emit("task_action_complete", {
         taskId, 
         action: 'done', 
@@ -159,130 +188,3 @@ export async function runSequentialTask(opts: SeqRunOptions) {
     });
     opts.onDone?.("Workflow finished");
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // --------------------------------------------------------------------------
-
-    /*
-    /*
-    ** emit
-
-    emit('task_update', { 
-        taskId, action: "start", speakToUser: subQuery, status: "initial"
-    });
-    console.log(`initial -> ${subQuery}`);
-
-    let step = 0;
-    const currentPage = await pageManager();
-    const promptContext: PromptContext = {
-        originalQuery,
-        subQuery,
-        currentUrl: currentPage?.url() ?? '',
-    }
-
-    /*
-    ** run the cycle -> start the sub task
-    *
-    while (step < 30) {
-        /*
-        ** prepare the request payload
-        *
-        const contents = [
-            { role: "user", parts: [ { text: subQuery } ] },
-            ...trimHistory(history)
-        ]
-
-        const config = {
-            temperature: 0.0,
-            : 2048,
-            mode: 'ANY',
-            systemInstruction: systemPrompt(promptContext),
-            tools: [{ functionDeclarations: [ActionDeclarations] }]
-        };
-
-        /*
-        ** thinking
-        ** send LLM action generation request with Action Declarations as tools
-        *
-        const llmActionId = uuidv4();
-        emit('task_action_start', { taskId, action: '__thinking__', speakToUser: 'Thinking...', actionId: llmActionId });
-        const response = await callLLM({ modelId: model, contents, config });
-        console.log("response", response)
-        emit('task_action_complete', { taskId, action: '__thinking__', speakToUser: 'Thinking...', actionId: llmActionId, status: 'success' });
-
-        /*
-        ** process the response
-        *
-        const fn = getFnCall(response);
-        
-        if (!fn) {
-            const msg = 'LLM response contained no function call';
-            console.log("msg", msg)
-            emit('task_action_error', { taskId, action:'llm_missing_call', error: msg, actionId: llmActionId });
-            opts.onError?.(msg);
-            return;
-        }
-
-        /*
-        ** terminal call
-        *
-        if (fn.name === 'done') {
-            emit('task_action_complete', { taskId, action:'done', parameters:fn.args, status:'completed' });
-            opts.onDone?.(fn.args?.text ?? '');
-            // await currentPage.close();
-            return fn.args?.text;
-        }
-
-        /*
-        ** execute pptr action
-        *
-        const explanation = semanticExplanation(fn.name, fn.args);
-        const pptrActionId = uuidv4();
-        emit('task_action_start', { taskId, action: fn.name, speakToUser: explanation, actionId: pptrActionId });
-        const puppeteerRes = await handlePuppeteerAction({
-            actionDetails: { action: fn.name, parameters: fn.args, taskId },
-            currentPage,
-            browserInstance
-        });
-        console.log("puppeteerRes", puppeteerRes)
-        emit('task_action_complete', { taskId, action: fn.name, speakToUser: explanation, status:'success', actionId: pptrActionId });
-
-        /*
-        ** error on browser failure
-        *
-        if (!puppeteerRes.success) {
-            opts.onError?.(puppeteerRes.error || 'browser action failed');
-            return;
-        }
-
-        const semanticPptrResult = semanticPptrExplanation(fn.name, fn.args);
-        mem.push(`SQ${qIdx}:result`, puppeteerRes.result);
-
-        /*
-        ** cap to 20 messages
-        *
-        let cloneHistory = JSON.parse(JSON.stringify(history));
-        if (cloneHistory.length > 20) {
-            cloneHistory = cloneHistory.slice(-20);
-            history = cloneHistory;
-        }
-    
-        step += 1;
-    }
-    */

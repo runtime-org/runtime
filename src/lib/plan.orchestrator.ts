@@ -78,6 +78,7 @@ Guidelines:
 - choose the single tool that accomplishes the action, taking prior tool usage in this conversation into account.
 - Output ONLY the call in the exact form of the tool invocation.
 - Do not add any explanatory text.
+- Always use tool 'done' to return the final answer to the sub-query.
 
 Instruction:
 ${step}

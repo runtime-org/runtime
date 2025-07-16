@@ -67,7 +67,6 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
     ** handle task updates
     */
     const handleTaskUpdate = ({ taskId, action, speakToUser, status}) => {
-
       setMessages(prev => {
         /* 
         ** create a new system message

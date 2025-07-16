@@ -1,6 +1,6 @@
 import { DomService } from './dom';
 
-export const handlePuppeteerAction = async ({actionDetails, browserInstance, currentPage}) => {
+export const handlePuppeteerAction = async ({actionDetails, browserInstance, currentPage, logged = false}) => {
     // eslint-disable-next-line no-unused-vars
     const { action, parameters, taskId } = actionDetails;
     const pageInstance = currentPage;
@@ -28,34 +28,34 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(parameters.query)}&udm=14`;
                 await pageInstance.goto(searchUrl, { waitUntil: 'networkidle0', timeout: 60000 });
                 result = { success: true, data: { searchQuery: parameters.query, navigatedTo: searchUrl } };
-                console.log(`🔍 Searched for "${parameters.query}" in Google`);
+                if (logged) console.log(`🔍 Searched for "${parameters.query}" in Google`);
                 break;
             }
 
             case "go_to_url": {
                 await pageInstance.goto(parameters.url, { waitUntil: 'networkidle0', timeout: 60000 });
                 result = { success: true, data: { navigatedTo: parameters.url } };
-                console.log(`🔗 Navigated to ${parameters.url}`);
+                if (logged) console.log(`🔗 Navigated to ${parameters.url}`);
                 break;
             }
 
             case "go_back": {
                 await pageInstance.goBack({ waitUntil: 'networkidle0' });
                 result = { success: true, data: { action: 'navigated back' } };
-                console.log("🔙 Navigated back");
+                if (logged) console.log("🔙 Navigated back");
                 break;
             }
 
             case "go_forward": {
                 await pageInstance.goForward({ waitUntil: 'networkidle0' });
                 result = { success: true, data: { action: 'navigated forward' } };
-                console.log("⏭️ Navigated forward");
+                if (logged) console.log("⏭️ Navigated forward");
                 break;
             }
             case "refresh_page": {
                 await pageInstance.reload({ waitUntil: 'networkidle0' });
                 result = { success: true, data: { action: 'page refreshed' } };
-                console.log("🔄 Page refreshed");
+                if (logged) console.log("🔄 Page refreshed");
                 break;
             }
             // ===== TIMING =====
@@ -63,7 +63,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 const waitTime = parameters.seconds || 3;
                 await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
                 result = { success: true, data: { waited: waitTime } };
-                console.log(`🕒 Waited for ${waitTime} seconds`);
+                if (logged) console.log(`🕒 Waited for ${waitTime} seconds`);
                 break;
             }
             // ===== ELEMENT INTERACTION =====
@@ -75,7 +75,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                     result = { success: false, error: clickResult.message, data: null };
                 } else {
                     result = { success: true, data: clickResult };
-                    console.log(`🖱️ ${clickResult.message}`);
+                    if (logged) console.log(`🖱️ ${clickResult.message}`);
                 }
                 break;
             } 
@@ -105,13 +105,13 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 }, inputElement.xpath, parameters.text);
 
                 result = { success: true, data: inputResult };
-                console.log(`⌨️ Input text into element ${parameters.index}`);
+                if (logged) console.log(`⌨️ Input text into element ${parameters.index}`);
                 break;
             }
             case "send_keys": {
                 await pageInstance.keyboard.press(parameters.keys);
                 result = { success: true, data: { keys: parameters.keys } };
-                console.log(`⌨️ Sent keys: ${parameters.keys}`);
+                if (logged) console.log(`⌨️ Sent keys: ${parameters.keys}`);
                 break;
             }
             // ===== SCROLLING =====
@@ -121,7 +121,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                     window.scrollBy(0, amount);
                 }, scrollDownAmount);
                     result = { success: true, data: { scrolled: scrollDownAmount } };
-                    console.log(`🔍 Scrolled down ${scrollDownAmount}px`);
+                    if (logged) console.log(`🔍 Scrolled down ${scrollDownAmount}px`);
                 break;
             }
 
@@ -131,7 +131,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                     window.scrollBy(0, -amount);
                 }, scrollUpAmount);
                 result = { success: true, data: { scrolled: -scrollUpAmount } };
-                console.log(`🔍 Scrolled up ${scrollUpAmount}px`);
+                if (logged) console.log(`🔍 Scrolled up ${scrollUpAmount}px`);
                 break;
             }
 
@@ -152,7 +152,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                     data: scrollResult,
                     error: scrollResult.found ? null : `Text "${parameters.text}" not found on page`
                 };
-                console.log(`🔍 ${scrollResult.found ? 'Scrolled to' : 'Could not find'} text: ${parameters.text}`);
+                if (logged) console.log(`🔍 ${scrollResult.found ? 'Scrolled to' : 'Could not find'} text: ${parameters.text}`);
                 break;
             }
 
@@ -177,7 +177,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 }, dropdown.xpath);
 
                 result = { success: true, data: { options } };
-                console.log(`📋 Found ${options.length} options in dropdown`);
+                if (logged) console.log(`📋 Found ${options.length} options in dropdown`);
                 break;
             }
 
@@ -204,7 +204,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 }, selectElement.xpath, parameters.text);
 
                 result = selectResult;
-                console.log(`📋 Selected option: ${parameters.text}`);
+                if (logged) console.log(`📋 Selected option: ${parameters.text}`);
                 break;
             }
 
@@ -250,7 +250,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 await pageInstance.mouse.up();
                 
                 result = { success: true, data: { draggedFrom: { x: sourceX, y: sourceY }, draggedTo: { x: targetX, y: targetY } } };
-                console.log(`🫳 Drag and drop completed`);
+                if (logged) console.log(`🫳 Drag and drop completed`);
                 break;
             }
 
@@ -263,7 +263,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 
                 await targetPage.bringToFront();
                 result = { success: true, data: { switchedTo: parameters.page_id, url: targetPage.url() } };
-                console.log(`🔄 Switched to tab ${parameters.page_id}`);
+                if (logged) console.log(`🔄 Switched to tab ${parameters.page_id}`);
                 break;
             }
 
@@ -275,7 +275,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 const newTabIndex = pages2.length - 1;
                 
                 result = { success: true, data: { newTabIndex, url: parameters.url } };
-                console.log(`🔗 Opened new tab with ${parameters.url}`);
+                if (logged) console.log(`🔗 Opened new tab with ${parameters.url}`);
                 break;
             }
 
@@ -284,7 +284,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 const allPages = await browserInstance.pages();
                 const tabs = allPages.map((p, i) => ({ id: i, url: p.url(), title: p.title() ? p.title() : "" }));
                 result = { success: true, data: { tabs } };
-                console.log(`🔗 Retrieved all tabs`);
+                if (logged) console.log(`🔗 Retrieved all tabs`);
                 break;
             }
 
@@ -293,7 +293,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 const for_pages = await browserInstance.pages();
                 const currentTab = for_pages.findIndex(p => p === pageInstance);
                 result = { success: true, data: { currentTab } };
-                console.log(`🔗 Retrieved current tab`);
+                if (logged) console.log(`🔗 Retrieved current tab`);
                 break;
             }
 
@@ -305,7 +305,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 
                 await pageToClose.close();
                 result = { success: true, data: { closedTab: parameters.page_id } };
-                console.log(`❌ Closed tab ${parameters.page_id}`);
+                if (logged) console.log(`❌ Closed tab ${parameters.page_id}`);
                 break;
             }
 
@@ -348,14 +348,14 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 }, parameters.goal, parameters.include_links || false);
 
                 result = { success: true, data: extractedContent };
-                console.log(`📄 Extracted content for: ${parameters.goal}`);
+                if (logged) console.log(`📄 Extracted content for: ${parameters.goal}`);
                 break;
             }
 
             case "get_visible_text": {
                 const visibleText = await domService.getVisibleText();
                 result = { success: true, data: { visibleText } };
-                console.log(`🔍 Retrieved visible text`);
+                if (logged) console.log(`🔍 Retrieved visible text`);
                 break;
             }
 
@@ -426,7 +426,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                     printBackground: false
                 });
                 result = { success: true, data: { savedAs: filename } };
-                console.log(`💾 PDF saved as ${filename}`);
+                if (logged) console.log(`💾 PDF saved as ${filename}`);
                 break;
             }
 
@@ -446,7 +446,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
 
                 await fileInput.uploadFile(parameters.file_path);
                 result = { success: true, data: { uploadedFile: parameters.file_path } };
-                console.log(`📁 Uploaded file: ${parameters.file_path}`);
+                if (logged) console.log(`📁 Uploaded file: ${parameters.file_path}`);
                 break;
             }
 
@@ -459,14 +459,14 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                         requiresUserInput: true 
                     } 
                 };
-                console.log(`❓ Asked user: ${parameters.question}`);
+                if (logged) console.log(`❓ Asked user: ${parameters.question}`);
                 break;
             }
 
             case "execute_javascript": {
                 const jsResult = await pageInstance.evaluate(parameters.script);
                 result = { success: true, data: { result: jsResult } };
-                console.log(`⚙️ Executed JavaScript`);
+                if (logged) console.log(`⚙️ Executed JavaScript`);
                 break;
             }
             // ===== FALLBACK =====
@@ -477,14 +477,14 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
 
     } catch (error) {
         const errorMessage = error.message || "Unknown error occurred";
-        console.log(`❌ Error executing ${action}: ${errorMessage}`);
+        if (logged) console.log(`❌ Error executing ${action}: ${errorMessage}`);
         
         // Attempt cleanup if error occurs
         try {
             await domService.removeHighlights();
-            console.log(`🧹 Emergency cleanup completed after error`);
+            if (logged) console.log(`🧹 Emergency cleanup completed after error`);
         } catch (cleanupError) {
-            console.log(`⚠️ Cleanup error: ${cleanupError.message}`);
+            if (logged) console.log(`⚠️ Cleanup error: ${cleanupError.message}`);
         }
         
         result = { success: false, error: errorMessage, data: null };
