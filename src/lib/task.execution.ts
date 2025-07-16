@@ -70,6 +70,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             }
 
             if (toolCall.name === 'done') {
+                console.log("answer:", toolCall.args?.text);
                 emit("task_action_complete", {
                     taskId,
                     action: 'done',
@@ -93,7 +94,8 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 taskId,
                 action: toolCall.name,
                 speakToUser: sentence,
-                actionId
+                actionId,
+                status: 'running'
             })
 
             let pptrRes = await handlePuppeteerAction({

@@ -85,54 +85,17 @@ export default function System({
       {/* Tab content */}
       {activeTab === 'plan' && (
         <div className="">
-          <Construction activeTab={activeTab} plans={message.plans} tabs={message.tabs} />
+          <Construction activeTab={activeTab} tasks={message.tasks} />
           
           {/* Message text with optional parallel workflow progress */}
-          <div className="mt-2">
-            {isParallelWorkflow && progress ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-[#a4a4a8] font-medium">
-                    Parallel Research Progress
-                  </span>
-                  <span className="text-xs text-[#a4a4a8]">
-                    {progress.completedTasks}/{progress.totalTasks} tasks
-                  </span>
-                </div>
-                
-                {/* Progress bar */}
-                <div className="w-full bg-zinc-700/30 rounded-full h-2">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${progress.percentage}%` }}
-                  />
-                </div>
-                
-                <p className="text-sm text-[#a4a4a8] font-[500]">
-                  {message.text}
-                </p>
-
-                {/* Show final results when workflow is completed */}
-                {workflowInfo?.status === 'completed' && workflowInfo?.finalResult && (
-                  <div className="mt-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                    <div className="text-xs text-green-400 font-medium mb-2">
-                      📄 Final Research Summary:
-                    </div>
-                    <div className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
-                      {workflowInfo.finalResult}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm text-[#a4a4a8] font-[500]">{message.text}</p>
-            )}
+          <div className="mt-3">
+            <p className="text-sm text-[#a4a4a8] font-[500]">{message.text}</p>
           </div>
         </div>
       )}
 
       {activeTab === 'tabs' && (
-        <Construction activeTab={activeTab} plans={message.plans} tabs={message.tabs} />
+        <Construction activeTab={activeTab} tasks={message.tasks} />
       )}
     </div>
   );

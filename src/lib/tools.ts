@@ -257,9 +257,9 @@ export const QueryAnalysisDeclaration = [
   {
     name: 'analyze_query_strategy',
     description: 
-        "Break the user query into an ordered SEQUENTIAL chain of sub-queries. " +
-        "Return each sub-query and an explicit dependencies list so the caller  " + 
-        "knows which earlier answers are required for each later step.",
+        `Break the user query into an ordered SEQUENTIAL chain of sub-queries.
+        Return each sub-query and an explicit dependencies list so the caller
+        knows which earlier answers are required for each later step.`,
     parameters: {
       type: Type.OBJECT,
       properties: {

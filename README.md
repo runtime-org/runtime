@@ -1,10 +1,21 @@
 # runtime
 
-Setup to run the app (still experimental)
+
+
+### Get started
+The current version is flaky, and we know were the issue is, but working on adressing them actively.
+
+#### Gemini API  Key setup
+You should have to create .env file in the root folder, you should add the GEMINI api key as follow
+```bash
+VITE_GEMINI_API_KEY=
+```
+
+#### Setup to run the app (still experimental)
 ```bash
 # install node -> https://formulae.brew.sh/formula/node
 # if installed, check via
-node -v
+node -v # depending on your OS, use https://nodejs.org/en
 
 # install rust -> https://www.rust-lang.org/tools/install
 # (the above link will install rust compiler for your hardware)
@@ -21,14 +32,14 @@ npm run tauri dev
 Current workflow reimplementation (in progress)
  - [x] enhanced query splitter 
  - [x] runWorkflow
- - [ ] runSequentialTask
+ - [x] runSequentialTask
  - [x] planGenerator 
  - [x] planGenerator tested and integrated
  - [x] stepTranslator
- - [ ] stepTranslator enhancing
+ - [x] stepTranslator enhancing
  - [x] handlePuppeteerAction
- - [ ] emit progress
- - [ ] test and integration
+ - [x] emit progress
+ - [ ] test and correction of bugs (ongoing)
 
 
 ```ascii
@@ -65,3 +76,7 @@ assistant (toolCall)  ──▶  tool (JSON result)  ──▶  assistant (next 
                  ▲                               │
                  ╰───────────── history ─────────╯
 ```
+
+
+### Demos
+(soon)

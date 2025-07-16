@@ -146,44 +146,55 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
     /*
     * starting the action (puppeteer or llm)
     */
-    const handleActionStart = ({ taskId, action, speakToUser, actionId }) => {
-      console.log("handleActionStart", { taskId, action, speakToUser, actionId });
+    const handleActionStart = ({ taskId, action, speakToUser, status, actionId }) => {
       setMessages(prev => {
         const clone = [...prev];
-        let sys = clone.find(m => m.type === 'system' && m.tasks);
-        if (!sys) return prev;
 
         /*
-        ** deep clone the system message to avoid mutations
+        ** locate the system message whose the tasks includes the taskId
         */
+        let sysIndex = clone.findIndex(
+          m =>
+            m.type === 'system' &&
+            Array.isArray(m.tasks) &&
+            m.tasks.some(t => t.taskId === taskId)
+        );
+
+        /*
+        ** deep clone to avoid mutation state directly
+        */
+        let sys = clone[sysIndex];
         sys = {
           ...sys,
           tasks: sys.tasks.map(t => ({ ...t, plans: [...t.plans] }))
         };
 
-        const sysIndex = clone.findIndex(m => m.type === 'system' && m.tasks);
-        clone[sysIndex] = sys;
+        /*
+        ** locate the task inside this system message
+        */
+        const task = sys.tasks.find(t => t.taskId === taskId);
 
         /*
-        ** locate or make the specific task
+        ** add the actual step to the plans
         */
-        const task = sys.tasks.find((t) => t.taskId === taskId);
-        if (!task) return prev;
-
-        const planTitle = action === '__thinking__' ? speakToUser : speakToUser;
-
         const plan = {
           id: actionId,
           action,
-          title: planTitle,
-          status: 'running',
+          title: speakToUser,
+          status: status,
           timestamp: new Date().toISOString()
-        };
+        }
+
         task.plans.push(plan);
         sys.tasks = [...sys.tasks];
+        // console.log("sys", sys);
 
+        /*
+        ** update the zustand message
+        */
+        clone[sysIndex] = sys;
         addMessageToSession(activeSessionId, sys, true);
-        
+
         return clone;
       });
     };
@@ -192,36 +203,47 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
     * finished or errored the action (puppeteer or llm)
     */
     const handleActionDone = ({ taskId, status, error, actionId }) => {
+
       setMessages(prev => {
         const clone = [...prev];
-        let sys = clone.find(m => m.type === 'system' && m.tasks);
-        if (!sys) return prev;
 
         /*
-        ** deep clone the system message to avoid mutations
+        ** locate the system message that own this taskId
         */
+        const sysIndex = clone.findIndex(
+          m =>
+            m.type === "system" &&
+            Array.isArray(m.tasks) &&
+            m.tasks.some(t => t.taskId === taskId)
+        );
+
+        /*
+        ** deep clone to avoid mutation state directly
+        */
+        let sys = clone[sysIndex];
         sys = {
           ...sys,
           tasks: sys.tasks.map(t => ({ ...t, plans: [...t.plans] }))
         };
 
-        const sysIndex = clone.findIndex(m => m.type === 'system' && m.tasks);
-        clone[sysIndex] = sys;
-
         /*
-        ** locate or make the specific task
+        ** locate the task and the corresponding plan
         */
-        const task = sys.tasks.find((t) => t.taskId === taskId);
-        if (!task) return prev;
+        const task = sys.tasks.find(t => t.taskId === taskId);
 
-        const plan = task.plans.find((p) => p.id === actionId);
+        const plan = task.plans.find(p => p.id === actionId);
         if (!plan) return prev;
 
-        plan.status = status === 'success' ? 'completed' : 'error';
+        /*
+        ** update the plan
+        */
+        plan.status = status === "success" ? "completed" : "error";
         if (error) plan.error = error;
 
-        sys.tasks = [...sys.tasks];
-
+        /*
+        ** update the zustand message
+        */
+        clone[sysIndex] = sys;
         addMessageToSession(activeSessionId, sys, true);
 
         return clone;
@@ -253,6 +275,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
       */
       const resp  = await splitQuery(rawText);
       const { queries, dependencies } = resp;
+      console.log("queries", queries);
 
       /*
       * run the workflow

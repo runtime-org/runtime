@@ -14,6 +14,8 @@ export default function Construction({ activeTab, tasks = [] }) {
   const linkRefs = useRef({});
   const [isVisible, setIsVisible] = useState(false);
 
+  console.log("tasks", tasks);
+
   useEffect(() => {
     if (activeTab === "plan") {
       setIsVisible(false);

@@ -33,6 +33,7 @@ export async function callLLM(props) {
                 contents: convertedContents, 
                 config: config
             });
+            console.log("response", response);
 
             /*
             ** make sure that the response is a valid function call response
