@@ -28,6 +28,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
     ** shared memory across queries tasks
     */
     const mem: SharedMemory = makeMemory();
+    let finalResult = '';
 
     /*
     ** iterate through SQ1, SQ2, ... SQn
@@ -45,7 +46,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             dependencies, 
             results: queries.map((_, i) => mem.get(`SQ${i}:result`))
         });
-        // console.log("steps", steps);
 
         /*
         ** conversation context for stepTranslator
@@ -70,13 +70,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             }
 
             if (toolCall.name === 'done') {
-                console.log("emit task_action_complete", {
-                    taskId,
-                    action: 'done',
-                    status: 'completed',
-                    speakToUser: toolCall.args?.text ?? '',
-                    error: null
-                })
                 emit("task_action_complete", {
                     taskId,
                     action: 'done',
@@ -85,6 +78,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                     error: null
                 })
                 if (toolCall.args?.text) {
+                    finalResult = toolCall.args?.text;
                     mem.set(`SQ${qIdx}:result`, toolCall.args?.text);
                 }
                 break;
@@ -95,12 +89,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             */
             // const explanation = semanticExplanation(toolCall.name, toolCall.args);
             const actionId = uuidv4();
-            console.log("emit task_action_start", {
-                taskId,
-                action: toolCall.name,
-                speakToUser: sentence,
-                actionId
-            })
             emit("task_action_start", {
                 taskId,
                 action: toolCall.name,
@@ -134,15 +122,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 })
             }
 
-            console.log("emit task_action_complete", {
-                taskId,
-                action: toolCall.name,
-                speakToUser: sentence,
-                status: pptrRes.success ? 'success' : 'failed',
-                error: pptrRes.success ? undefined : pptrRes.error,
-                actionId
-            })
-
             emit("task_action_complete", {
                 taskId,
                 action: toolCall.name,
@@ -172,18 +151,11 @@ export async function runSequentialTask(opts: SeqRunOptions) {
     /*
     ** emit completion
     */
-    console.log("emit task_action_complete", {
-        taskId,
-        action: 'done',
-        status: 'completed',
-        speakToUser: 'success',
-        error: null
-    })
-    emit("task_action_complete", {
+    emit("workflow_update", {
         taskId, 
         action: 'done', 
         status: 'completed', 
-        speakToUser: 'success', 
+        speakToUser: finalResult, 
         error: null 
     });
     opts.onDone?.("Workflow finished");

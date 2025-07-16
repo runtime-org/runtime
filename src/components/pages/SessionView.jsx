@@ -66,7 +66,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
     /*
     ** handle task updates
     */
-    const handleTaskUpdate = ({ taskId, action, speakToUser, status}) => {
+    const handleTaskUpdate = ({ taskId, action, speakToUser, status, error}) => {
       setMessages(prev => {
         /* 
         ** create a new system message
@@ -79,19 +79,23 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
           sysMsg = {
             id: msgId,
             type: 'system',
-            text: '---',
+            text: '',
             action,
             timestamp: new Date().toISOString(),
             status: 'pending',
             tasks: []
           };
           clone.push(sysMsg);
+          // console.log("created new system message", sysMsg);
         } else {
           /*
           ** deep clone the system message to avoid mutations
+          ** and set status to 'complete'
           */
           sysMsg = {
             ...sysMsg,
+            status: 'complete',
+            text: speakToUser,
             tasks: sysMsg.tasks.map(t => ({ 
               ...t,
               plans: [...t.plans]
@@ -100,6 +104,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
           
           const sysIndex = clone.findIndex(m => m.type === 'system' && m.tasks);
           clone[sysIndex] = sysMsg;
+          // console.log("close workflow", sysMsg);
         }
 
         /*
@@ -142,6 +147,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
     * starting the action (puppeteer or llm)
     */
     const handleActionStart = ({ taskId, action, speakToUser, actionId }) => {
+      console.log("handleActionStart", { taskId, action, speakToUser, actionId });
       setMessages(prev => {
         const clone = [...prev];
         let sys = clone.find(m => m.type === 'system' && m.tasks);

@@ -5,7 +5,8 @@ export const ActionDeclarations = [
   // ===== TASK COMPLETION =====
   {
     name: 'done',
-    description: 'Complete task - with return text and if the task is finished (success=True) or not yet completely finished (success=False), because last step is reached',
+    description: "Complete task - with return text and if the task is finished (success=True) or not yet completely finished (success=False), because last step is reached" +
+    "Give the final result of the task in a constructive sentence.",
     parameters: {
       type: Type.OBJECT,
       properties: {
