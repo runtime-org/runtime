@@ -4,12 +4,9 @@ import { handlePuppeteerAction } from "./pptr";
 import { SeqRunOptions } from "./task.execution.schemas";
 import { 
     emit, 
-    pushHistory, 
-    // trimHistory, 
-    semanticExplanation,
-    semanticPptrExplanation
+    pushHistory,
 } from "./task.execution.helpers";
-import { makeMemory, SharedMemory } from "./task.execution.memory";
+import { synthesizeResults } from "./task.execution.llm";
 import { stepTranslator, planGenerator } from "./plan.orchestrator";
 
 
@@ -27,8 +24,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
     /*
     ** shared memory across queries tasks
     */
-    const mem: SharedMemory = makeMemory();
-    let finalResult = '';
+    const results: (string | undefined)[] = Array(queries.length).fill(undefined);
 
     /*
     ** iterate through SQ1, SQ2, ... SQn
@@ -44,8 +40,9 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             subQuery, 
             queries, 
             dependencies, 
-            results: queries.map((_, i) => mem.get(`SQ${i}:result`))
+            results
         });
+        console.log("steps", results);
 
         /*
         ** conversation context for stepTranslator
@@ -61,7 +58,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             const sentence = steps[s];
 
             const toolCall = await stepTranslator(sentence, history);
-            // console.log(`sentence: ${sentence} -> toolCall: ${JSON.stringify(toolCall)}`);
 
             if (!toolCall) {
                 console.log(`Translator failed at step ${s} for ${subQuery}`);
@@ -71,6 +67,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
 
             if (toolCall.name === 'done') {
                 console.log("answer:", toolCall.args?.text);
+                results[qIdx] = toolCall.args?.text;
                 emit("task_action_complete", {
                     taskId,
                     action: 'done',
@@ -78,17 +75,12 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                     speakToUser: toolCall.args?.text ?? '',
                     error: null
                 })
-                if (toolCall.args?.text) {
-                    finalResult = toolCall.args?.text;
-                    mem.set(`SQ${qIdx}:result`, toolCall.args?.text);
-                }
                 break;
             }
 
             /*
             ** run puppeteer action with one retry
             */
-            // const explanation = semanticExplanation(toolCall.name, toolCall.args);
             const actionId = uuidv4();
             emit("task_action_start", {
                 taskId,
@@ -138,6 +130,11 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 return;
             }
 
+            /* store visible text if this step might answer the SQ directly */
+            if (pptrRes.data?.visibleText && !results[qIdx]) {
+                results[qIdx] = pptrRes.data.visibleText.slice(0, 2048);
+              }
+
             /*
             ** push action generated and the result to history
             */
@@ -150,6 +147,8 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         }
     }
 
+    const finalResult = await synthesizeResults(originalQuery, results, model);
+
     /*
     ** emit completion
     */
@@ -160,5 +159,5 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         speakToUser: finalResult, 
         error: null 
     });
-    opts.onDone?.("Workflow finished");
+    opts.onDone?.(finalResult);
 }

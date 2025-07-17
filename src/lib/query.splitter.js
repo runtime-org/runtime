@@ -24,7 +24,6 @@ ${QUERY_FEW_SHOT}
 Date: ${analysisDate}
 (Please use this date for accurate search results)
 `;
-console.log("prompt", prompt);
 
     /*
     ** config setup
@@ -48,7 +47,6 @@ console.log("prompt", prompt);
     /*
     ** get function call
     */
-    console.log("response", response);
     const call = getFnCall(response);
     if (!call) return [query];
 
