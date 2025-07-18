@@ -4,7 +4,8 @@ use std::time::Duration;
 use once_cell::sync::Lazy;
 use reqwest::Client;
 use crate::sketchs::ManageableBrowserInstance;
-use crate::network::get_browser_websocket_url;
+use crate::network::{get_browser_websocket_url, scan_for_existing_browser_instances, determine_browser_type, get_browser_info};
+use crate::platform::detect_browsers;
 
 static MANAGED_BROWSER: Lazy<Mutex<Option<ManageableBrowserInstance>>> = Lazy::new(|| Mutex::new(None));
 
@@ -35,6 +36,7 @@ fn get_allowed_origins() -> String {
 pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
     let mut managed_browser_guard = MANAGED_BROWSER.lock().await;
     
+    // First, check if we have a managed browser instance
     if let Some(instance) = &mut *managed_browser_guard {
         if instance.path == target_browser_path {
             // is the child process still running?
@@ -42,7 +44,6 @@ pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
                 Ok(Some(_)) => {
                     println!("browser process has exited");
                     *managed_browser_guard = None;
-                    None
                 }
                 Ok(None) => {
                     println!("reusing the runtime instance at {}", instance.port);
@@ -59,7 +60,6 @@ pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
                             let _ = instance.child.kill();
                             let _ = instance.child.wait();
                             *managed_browser_guard = None;
-                            None
                         }
                     }
                 }
@@ -67,7 +67,6 @@ pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
                     println!("failed to check if browser is running: {}. will launch a new one.", e);
                     let _ = instance.child.kill();
                     *managed_browser_guard = None;
-                    None
                 }
             }
         } else {
@@ -75,11 +74,22 @@ pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
             let _ = instance.child.kill();
             let _ = instance.child.wait();
             *managed_browser_guard = None;
-            None
         }
-    } else {
-        None
     }
+    
+    // No managed instance found, scan for existing browser instances
+    let browsers = detect_browsers();
+    if let Some(target_browser) = browsers.iter().find(|b| b.path == target_browser_path) {
+        println!("No managed instance found. Scanning for existing {} instances...", target_browser.id);
+        
+        if let Some(ws_url) = scan_for_existing_browser_instances(&target_browser.id).await {
+            println!("Found existing {} instance, connecting...", target_browser.id);
+            return Some(ws_url);
+        }
+    }
+    
+    println!("No compatible running browser instances found");
+    None
 }
 
 pub async fn launch_new_instance(target_browser_path: &str, port: u16) -> Result<String, String> {
@@ -103,21 +113,42 @@ pub async fn launch_new_instance(target_browser_path: &str, port: u16) -> Result
             .arg("--disable-features=VizDisplayCompositor");
     }
 
+    // Determine if this is Edge and add Edge-specific arguments if needed
+    let is_edge = target_browser_path.to_lowercase().contains("edge") || target_browser_path.to_lowercase().contains("msedge");
+    if is_edge {
+        println!("Detected Microsoft Edge browser, adding Edge-specific arguments");
+        // Add any Edge-specific arguments if needed in the future
+    }
+
     if is_dev {
         command.arg("https://www.google.com");
     } else {
         command.arg("about:blank");
     }
 
-    let child_process = command
+    let mut child_process = command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| format!("failed to launch browser: {}", e))?;
     
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    // Wait a bit longer for the browser to start up
+    tokio::time::sleep(Duration::from_secs(3)).await;
 
-    match get_browser_websocket_url(port, 10, 1000).await {
+    // Verify the process is still running before attempting connection
+    match child_process.try_wait() {
+        Ok(Some(status)) => {
+            return Err(format!("Browser process exited immediately with status: {}", status));
+        }
+        Ok(None) => {
+            println!("Browser process is running, attempting to connect...");
+        }
+        Err(e) => {
+            return Err(format!("Failed to check browser process status: {}", e));
+        }
+    }
+
+    match get_browser_websocket_url(port, 15, 1000).await {
         Ok(ws_url) => {
             let mut managed_browser_guard = MANAGED_BROWSER.lock().await;
             *managed_browser_guard = Some(ManageableBrowserInstance {
@@ -130,8 +161,11 @@ pub async fn launch_new_instance(target_browser_path: &str, port: u16) -> Result
             Ok(ws_url)
         },
         Err(e) => {
-            // let _ = child_process.kill();
-            Err(e)
+            println!("Failed to get WebSocket URL: {}", e);
+            // Kill the child process if connection failed
+            let _ = child_process.kill();
+            let _ = child_process.wait();
+            Err(format!("Failed to establish debugging connection: {}", e))
         }
     }
 }

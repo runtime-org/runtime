@@ -4,16 +4,17 @@ use reqwest::Client;
 
 pub fn find_free_port(start_port: u16) -> Option<u16> {
     let mut port = start_port;
-    let _tries = 0;
+    let mut tries = 0;
 
-    while _tries < 100 {
+    while tries < 100 {
         port += 1;
+        tries += 1;
         if TcpListener::bind(format!("127.0.0.1:{}", port)).is_ok() {
             return Some(port);
         }
     }
 
-    // flalback to 9222
+    // fallback to start_port
     if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{}", start_port)) {
         if let Ok(addr) = listener.local_addr() {
             return Some(addr.port());
@@ -21,6 +22,36 @@ pub fn find_free_port(start_port: u16) -> Option<u16> {
     }
     None
 }
+
+// Scan common debugging ports to find existing browser instances
+pub async fn scan_for_existing_browser_instances(target_browser_type: &str) -> Option<String> {
+    // Common debugging ports used by browsers
+    let ports_to_scan = [9222, 9223, 9224, 9225, 9226, 9227, 9228, 9229, 9230, 9231, 9232];
+    
+    println!("Scanning for existing {} instances on common debugging ports...", target_browser_type);
+    
+    for port in ports_to_scan {
+        if let Ok((browser_string, user_agent)) = get_browser_info(&port.to_string()).await {
+            let detected_browser_type = determine_browser_type(&browser_string, &user_agent);
+            
+            if detected_browser_type == target_browser_type {
+                println!("Found compatible {} instance on port {}", target_browser_type, port);
+                
+                // Get the WebSocket URL for this instance
+                if let Ok(ws_url) = get_browser_websocket_url(port, 3, 500).await {
+                    println!("Successfully obtained WebSocket URL: {}", ws_url);
+                    return Some(ws_url);
+                }
+            } else if detected_browser_type != "unknown" {
+                println!("Found {} on port {}, but looking for {}", detected_browser_type, port, target_browser_type);
+            }
+        }
+    }
+    
+    println!("No compatible {} instances found on common debugging ports", target_browser_type);
+    None
+}
+
 // just to get the port
 pub fn extract_port_from_ws_url(ws_endpoint: &str) -> Result<String, String> {
     let url = ws_endpoint.replace("ws://", "http://").replace("wss://", "https://");

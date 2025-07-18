@@ -12,7 +12,8 @@ use crate::network::{
     find_free_port, 
     extract_port_from_ws_url, 
     get_browser_info, 
-    determine_browser_type
+    determine_browser_type,
+    scan_for_existing_browser_instances
 };
 use crate::browser_manager::{
     get_running_instance,
@@ -70,14 +71,29 @@ pub async fn launch_browser(browser_path: Option<String>) -> Result<String, Stri
             .ok_or_else(|| "No browser found".to_string())?
     };
     
-    // try
+    println!("Attempting to connect to browser: {}", target_browser_path);
+    
+    // First, try to connect to any existing compatible instance
     if let Some(ws_url) = get_running_instance(&target_browser_path).await {
+        println!("Successfully connected to existing browser instance");
         return Ok(ws_url);
     }
     
-    // and do it
+    // No existing instance found, launch a new one
+    println!("No existing compatible browser instance found, launching new instance...");
     let port = find_free_port(9222).ok_or_else(|| "Failed to find a free port".to_string())?;
-    launch_new_instance(&target_browser_path, port).await
+    println!("Found free port: {}", port);
+    
+    match launch_new_instance(&target_browser_path, port).await {
+        Ok(ws_url) => {
+            println!("Successfully launched new browser instance");
+            Ok(ws_url)
+        }
+        Err(e) => {
+            println!("Failed to launch new browser instance: {}", e);
+            Err(format!("Failed to launch browser: {}. Please ensure the browser is properly installed and not running with conflicting arguments.", e))
+        }
+    }
 }
 
 #[tauri::command]
@@ -116,4 +132,10 @@ pub async fn validate_ws_endpoint(ws_endpoint: String, selected_browser_path: St
             Err(format!("saved browser connection is no longer available: {}", e))
         }
     }
+}
+
+#[tauri::command]
+pub async fn scan_for_existing_browsers(browser_type: String) -> Result<Option<String>, String> {
+    println!("Scanning for existing {} instances...", browser_type);
+    Ok(scan_for_existing_browser_instances(&browser_type).await)
 }
