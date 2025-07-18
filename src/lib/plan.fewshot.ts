@@ -1,3 +1,6 @@
+/*
+** plan generator
+*/
 export const PLAN_FEW_SHOT: string = `
 ### EXAMPLE 1 - simple fact
 
@@ -70,6 +73,9 @@ Sub-Query: "When is Mother's Day?"
 `;
 
 
+/*
+** step translator
+*/
 export const STEP_FEW_SHOT: string = `
 ### EXAMPLES
 Step: "Perform a Google search for 'author of book The Great Gatsby'"
@@ -85,4 +91,19 @@ Step: "Click the first reliable link (e.g., official site) using index 0"
   "index": 0
 })
 ### END EXAMPLES
+`;
+
+/*
+** answer evaluator
+*/
+export const EVAL_FEW_SHOT: string = `
+### Few-shot
+Sub-Query: "Who is the author of The Great Gatsby?"
+Proposed Answer: "F. Scott Fitzgerald"
+→ tool(evaluate_answer,{ "complete":true, "feedback":"" })
+
+Sub-Query: "Flight schedule from Berlin to Paris today"
+Proposed Answer: "I found a timetable but it may be outdated."
+→ tool(evaluate_answer,{ "complete":false, "feedback":"need current timetable with departure times or search in a different date or website" })
+### End
 `;

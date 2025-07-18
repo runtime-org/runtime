@@ -7,7 +7,7 @@ import {
     pushHistory,
 } from "./task.execution.helpers";
 import { synthesizeResults } from "./task.execution.llm";
-import { stepTranslator, planGenerator } from "./plan.orchestrator";
+import { stepTranslator, planGenerator, evalEngine } from "./plan.orchestrator";
 
 
 export async function runSequentialTask(opts: SeqRunOptions) {
@@ -32,124 +32,174 @@ export async function runSequentialTask(opts: SeqRunOptions) {
     for (let qIdx = 0; qIdx < queries.length; qIdx++) {
         const subQuery = queries[qIdx];
         console.log(`SQ${qIdx}: ${subQuery}`);
+        let feedback   = "";
+        let attempts   = 0;
+        let planDone   = false;
 
         /*
-        ** build a deterministic step list
+        ** build a deterministic plan -> steps 
         */
+        while (!planDone && attempts < 5) {
+            attempts++;
 
-        const steps = await planGenerator({ 
-            subQuery, 
-            queries, 
-            dependencies, 
-            results
-        });
-        console.log("steps", steps);
+            const steps = await planGenerator({
+                subQuery,
+                queries,
+                dependencies,
+                results,
+                feedback
+            });
 
-        /*
-        ** conversation context for stepTranslator
-        */
-        let history: any[] = [];
-
-        const currentPage = await pageManager();
-
-        /*
-        ** run steps
-        */
-        for (let s=0; s<steps.length; s++) {
-            const sentence = steps[s];
-
-            const toolCall = await stepTranslator(sentence, history);
-
-            if (!toolCall) {
-                console.log(`Translator failed at step ${s} for ${subQuery}`);
-                opts.onError?.(`Translator failed at step ${s} for ${subQuery}`);
-                return;
-            }
-
-            if (toolCall.name === 'done') {
-                console.log("toolCall", toolCall);
-                results[qIdx] = toolCall.args?.text;
-                emit("task_action_complete", {
-                    taskId,
-                    action: 'done',
-                    status: 'completed',
-                    speakToUser: toolCall.args?.text ?? '',
-                    error: null
-                })
-                break;
+        
+            if (!steps.length) {
+                opts.onError?.(`Empty plan for SQ${qIdx}`);
+                console.log(`SQ${qIdx} failed: empty plan`);
+                continue;
             }
 
             /*
-            ** run puppeteer action with one retry
+            ** conversation context for stepTranslator
             */
-            const actionId = uuidv4();
-            emit("task_action_start", {
-                taskId,
-                action: toolCall.name,
-                speakToUser: sentence,
-                actionId,
-                status: 'running'
-            })
+            let history: any[] = [];
+            const currentPage = await pageManager();
+            let finalAnswer   = "";
 
-            let pptrRes = await handlePuppeteerAction({
-                actionDetails: {
-                    action: toolCall.name,
-                    parameters: toolCall.args,
-                    taskId
-                },
-                currentPage,
-                browserInstance
-            })
-            if (toolCall.name === 'get_simplified_page_context') {
-                console.log("pptrRes", pptrRes);
-            }
+            /* 
+            ** run steps
+            */
+            for (let s = 0; s < steps.length; s++) {
+                const sentence = steps[s];
+                const toolCall = await stepTranslator(sentence, history);
 
-            if (!pptrRes.success) {
-                /*
-                ** retry once after 2s
+                if (!toolCall) {
+                    opts.onError?.(`Translator failed at step ${s} of SQ${qIdx}`);
+                    console.log(`SQ${qIdx} failed: translator failed at step ${s}`);
+                    continue;
+                }
+
+                /* 
+                ** plan is done
                 */
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                pptrRes = await handlePuppeteerAction({
-                    actionDetails: {
-                        action: toolCall.name,
-                        parameters: toolCall.args,
-                        taskId
+                if (toolCall.name === "done") {
+                    finalAnswer = toolCall.args?.text ?? "";
+                    console.log(`SQ${qIdx} done: ${finalAnswer}`);
+                    emit("task_action_complete", {
+                        taskId,
+                        action : "done",
+                        status : "success",
+                        speakToUser: finalAnswer,
+                        error  : null,
+                        actionId: uuidv4()
+                    });
+                    break;
+                }
+
+                /* 
+                ** run Puppeteer action with one retry
+                */
+                const actionId = uuidv4();
+                emit("task_action_start", { 
+                    taskId, 
+                    action: toolCall.name, 
+                    speakToUser: sentence, 
+                    actionId, 
+                    status:"running" 
+                });
+
+                let pptrRes = await handlePuppeteerAction({
+                    actionDetails: { 
+                        action: toolCall.name, 
+                        parameters: toolCall.args, 
+                        taskId 
                     },
                     currentPage,
                     browserInstance
-                })
+                });
+                
+                if (!pptrRes.success) {
+                    /*
+                    ** retry once after a delay (2s)
+                    */
+                    await new Promise(r => setTimeout(r, 2000));
+                    pptrRes = await handlePuppeteerAction({
+                        actionDetails: { 
+                            action: toolCall.name, 
+                            parameters: toolCall.args, 
+                            taskId 
+                        },
+                        currentPage,
+                        browserInstance
+                    });
+                }
+
+                emit("task_action_complete", {
+                    taskId,
+                    action: toolCall.name,
+                    speakToUser: sentence,
+                    status: pptrRes.success ? "success" : "failed",
+                    error: pptrRes.success ? undefined : pptrRes.error,
+                    actionId
+                });
+
+                /*
+                ** in case of pptr failure, do not emit error, retry again the task
+                */
+                if (!pptrRes.success) {
+                    console.log(`SQ${qIdx} failed: ${pptrRes.error}`);
+                    finalAnswer = "failed execution, retry again";
+                } 
+
+                /* store visible text if this step might answer the SQ directly */
+                // if (pptrRes.data?.visibleText && !finalAnswer)
+                //    finalAnswer = pptrRes.data.visibleText.slice(0, 10048);
+                // }
+
+                /* 
+                ** push action generated and the result to history
+                */
+                pushHistory(history, toolCall.name, toolCall.args, pptrRes.data);
+            
+                /*
+                ** cap to 20 messages
+                */
+                if (history.length > 20) history = history.slice(-20);
             }
 
-            emit("task_action_complete", {
-                taskId,
-                action: toolCall.name,
-                speakToUser: sentence,
-                status: pptrRes.success ? 'success' : 'failed',
-                error: pptrRes.success ? undefined : pptrRes.error,
-                actionId
-            })
-
-            if (!pptrRes.success) {
-                opts.onError?.(pptrRes.error || 'browser action failed');
-                return;
+            /*
+            ** evaluate completeness of the current plan
+            */
+            const evalRes = await evalEngine({
+                originalQuery,
+                subQuery,
+                answer: finalAnswer
+            });
+            if (evalRes.complete) {
+                results[qIdx] = finalAnswer;
+                planDone      = true;
+            } else {
+                feedback = evalRes.feedback || "(answer incomplete)";
+                console.log(`SQ${qIdx} failed: ${feedback}`);
+                //   emit("task_action_complete", {
+                //     taskId,
+                //     action : "evaluation",
+                //     status : "error",
+                //     speakToUser: `Retrying SQ${qIdx}: ${feedback}`,
+                //     error  : feedback,
+                //     actionId: uuidv4()
+                //   });
             }
+        }
 
-            /* store visible text if this step might answer the SQ directly */
-            if (pptrRes.data?.visibleText && !results[qIdx]) {
-                results[qIdx] = pptrRes.data.visibleText.slice(0, 10048);
-              }
-
-            /*
-            ** push action generated and the result to history
-            */
-            pushHistory(history, toolCall.name, toolCall.args, pptrRes.data);
-
-            /*
-            ** cap to 20 messages
-            */
-            if (history.length > 20) history = history.slice(-20);
+        /*
+        ** if the plan is not done or error, avoid retruning an error
+        */
+        if (!planDone) {
+            console.log(`SQ${qIdx} failed after 5 retries`);
+            results[qIdx] = "failed execution, retry again";
+            planDone = true;
         }
     }
+
     console.log("results", results);
     const finalResult = await synthesizeResults(originalQuery, results, model);
 

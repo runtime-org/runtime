@@ -20,4 +20,24 @@ export interface PlanOrchestratorOptions {
     ** results[i] === string -> plain text answer of SQi
     */
     results: (string | undefined)[];
+    /*
+    ** feedback from the previous step for trying again
+    */
+    feedback?: string;
+}
+/*
+** evaluate answer options
+*/
+export interface EvaluateAnswerOptions {
+    originalQuery: string;
+    answer: string;
+    subQuery: string;
+}
+
+/*
+** evaluate answer response
+*/
+export interface EvaluateAnswerResponse {
+    complete: boolean;
+    feedback: string;
 }

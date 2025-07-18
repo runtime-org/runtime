@@ -24,3 +24,25 @@ export const PlanDeclaration = {
   }
 };
 
+/*
+** result plan evaluator
+*/
+export const EvaluateAnswerTool = {
+  name: "evaluate_answer",
+  description:
+    `Judge whether a given answer fully and correctly satisfies the sub-query in the context of the original user request.`,
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      complete: {
+        type: Type.BOOLEAN,
+        description: "true if the answer is sufficient and no more browsing steps are needed"
+      },
+      feedback: {
+        type: Type.STRING,
+        description: "If complete is false, explain briefly what is missing"
+      }
+    },
+    required: ["complete","feedback"]
+  }
+}

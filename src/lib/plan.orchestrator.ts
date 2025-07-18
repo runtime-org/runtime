@@ -1,15 +1,19 @@
 import { callLLM } from "./llm.engine";
 import { getFnCall } from "./task.execution.helpers";
-import { PLAN_FEW_SHOT } from "./plan.fewshot";
-import { PlanDeclaration } from "./plan.tools";
+import { PLAN_FEW_SHOT, EVAL_FEW_SHOT } from "./plan.fewshot";
+import { PlanDeclaration, EvaluateAnswerTool } from "./plan.tools";
 import { ActionDeclarations } from "./tools";
-import { PlanOrchestratorOptions } from "./plan.orchestrator.schemas";
+import { 
+    PlanOrchestratorOptions, 
+    EvaluateAnswerOptions, 
+    EvaluateAnswerResponse 
+} from "./plan.orchestrator.schemas";
 
 /*
 ** produce a deterministic, ordored step list for ONE sub-query taking account of earlier answers.
 */
 export async function planGenerator(opts: PlanOrchestratorOptions): Promise<string[]> {
-    const { subQuery, queries, dependencies, results } = opts;
+    const { subQuery, queries, dependencies, results, feedback } = opts;
     /*
     ** build dynamic context for the prompt
     */
@@ -52,7 +56,7 @@ export async function planGenerator(opts: PlanOrchestratorOptions): Promise<stri
     /*
     ** build the prompt
     */
-    const prompt = `
+    let prompt = `
 Generate an action plan for the following query: "${subQuery}".
 ${GUIDANCE}
 ${PLAN_FEW_SHOT}
@@ -69,6 +73,8 @@ Plan for sub-query (index ${queries.indexOf(subQuery)}):
 Return ONLY a generate_action_plan tool call with the "steps" array.
     `;
     console.log("prompt", prompt);
+
+    if (feedback) prompt += `\nEvaluator Feedback: ${feedback}\n`;
 
     const config = {
         temperature: 0.0,
@@ -120,4 +126,40 @@ export async function stepTranslator(step: string, history: string[]): Promise<R
     });
     const fn = getFnCall(resp);
     return fn ?? {};
+}
+
+/*
+** evaluate the answer
+*/
+export async function evalEngine(opts: EvaluateAnswerOptions): Promise<EvaluateAnswerResponse> {
+    const { originalQuery, answer, subQuery } = opts;
+    const prompt = `
+${EVAL_FEW_SHOT}
+
+Original User Query:
+${originalQuery}
+Sub-Query being evaluated:
+${subQuery}
+Proposed Answer:
+${answer}
+
+Respond ONLY with an evaluate_answer function call.
+`;
+    const resp = await callLLM({
+        modelId: "gemini-2.5-flash",
+        contents: [{ role:"user", parts:[{ text: prompt }] }],
+        config: {
+            temperature: 0.0,
+            maxOutputTokens: 1024,
+            mode: "ANY",
+            tools:[{ functionDeclarations: [EvaluateAnswerTool] }]
+        },
+        ignoreFnCallCheck: true
+    });
+    const fn = getFnCall(resp);
+    const constraintOutput = fn?.args ?? { complete: false, feedback: "unknown error" };
+    return {
+        complete: constraintOutput.complete,
+        feedback: constraintOutput.feedback
+    };
 }
