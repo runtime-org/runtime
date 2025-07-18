@@ -10,14 +10,13 @@ import { PlanOrchestratorOptions } from "./plan.orchestrator.schemas";
 */
 export async function planGenerator(opts: PlanOrchestratorOptions): Promise<string[]> {
     const { subQuery, queries, dependencies, results } = opts;
-
     /*
     ** build dynamic context for the prompt
     */
-    const queriesBlock = queries.map((q, i) => { `   ${i}: ${q}` })
+    const queriesBlock = queries.map((q, i) => `   ${i}: ${q}` )
                                 .join('\n');
 
-    const resultsBlock = results.map((r, i) => { (r ? `   ${i}: ${r}` : `   ${i}: <pending>`); })
+    const resultsBlock = results.map((r, i) => (r ? `   ${i}: ${r}` : `   ${i}: <pending>`))
                                 .join('\n');
 
     /*
@@ -28,32 +27,52 @@ export async function planGenerator(opts: PlanOrchestratorOptions): Promise<stri
                                 .join('\n')
                     : '   (none)';
 
+    const GUIDANCE = `
+### PLANNING RULES
+1. Replace vague phrases like "that date", "this value" with the concrete text from the Known Results.  
+2. If a previous result already contains the answer, create one step: 
+    "Use the stored answer from the result [i] and finish the task".
+3. Otherwise the browsing pattern MUST be:
+    - Google search ...
+    - Retrieve the simplified page structure ...
+    - Click a reliable link ...
+    - Read visible text on the linked page ...
+    - Return the answer
+   Keep that order. Never skip "click" or "read".
+4. Whenever you extract a key fact that later sub-queries might reuse, 
+    add a step starting with "Store" describing what you saved.
+5. Any question that ultimately asks "**when is …**", "**date of …**" or "**what's the date of …**"
+    relative expressions like "next Monday", "this weekend", "Mother's Day" 
+    MUST navigate to **https://days.to/** and read the visible text there.
+    Use either:
+     • go_to_url "https://days.to/when-is/<keyword>"
+     • or Google search → click the first days.to link → read text.
+`;
+
     /*
     ** build the prompt
     */
-    const prompt = `Generate an action plan for the following query: "${subQuery}".
+    const prompt = `
+Generate an action plan for the following query: "${subQuery}".
+${GUIDANCE}
 ${PLAN_FEW_SHOT}
-
 # CURRENT CONTEXT
 All Sub-Queries:
 ${queriesBlock}
-
 Dependencies:
 ${depsBlock}
-
 Known Results (index -> text):
 ${resultsBlock}
-
 Plan for sub-query (index ${queries.indexOf(subQuery)}):
 "${subQuery}"
 
 Return ONLY a generate_action_plan tool call with the "steps" array.
-`;
+    `;
     console.log("prompt", prompt);
 
     const config = {
         temperature: 0.0,
-        maxOutputTokens: 1024,
+        maxOutputTokens: 2048,
         mode: 'ANY',
         tools: [{ functionDeclarations: [PlanDeclaration] }]
     }
@@ -74,15 +93,15 @@ Return ONLY a generate_action_plan tool call with the "steps" array.
 export async function stepTranslator(step: string, history: string[]): Promise<Record<string, any>> {
     const prompt = `Translate the atomic web-browsing instruction below into the proper tool invocation.
 
-Guidelines:
-- choose the single tool that accomplishes the action, taking prior tool usage in this conversation into account.
-- Output ONLY the call in the exact form of the tool invocation.
-- Do not add any explanatory text.
-- Always use tool 'done' to return the final answer to the sub-query.
+    Guidelines:
+    - choose the single tool that accomplishes the action, taking prior tool usage in this conversation into account.
+    - Output ONLY the call in the exact form of the tool invocation.
+    - Do not add any explanatory text.
+    - Always use tool 'done' to return the final answer to the sub-query.
 
-Instruction:
-${step}
-`;
+    Instruction:
+    ${step}
+    `;
     const config = {
         temperature: 0.0,
         maxOutputTokens: 1000,

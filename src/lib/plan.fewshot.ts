@@ -54,6 +54,18 @@ Sub-Query: "Weather in Edinburgh when the first London→Edinburgh flight arrive
   ]
 })
 
+### EXAMPLE 5 - date via days.to
+
+Sub-Query: "When is Mother's Day?"
+→ tool(generate_action_plan,{
+  "steps":[
+    "Perform a Google search for 'when is Mother's Day'",
+    "Retrieve the simplified structure of the search-results page",
+    "Click the first result that shows a date (days.to website)",
+    "Read the visible text of the date page",
+    "Return the date"
+  ]
+})
 ### END EXAMPLES
 `;
 

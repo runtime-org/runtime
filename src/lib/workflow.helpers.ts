@@ -22,7 +22,7 @@ export function makeWorkflow(args: {
       query: q,
       queryIndex: i,
       status: 'pending',
-      dependsOn: dependencies?.find(d => d.query_index === i) ? [i] : []
+      dependsOn: dependencies?.find(d => d.query_index === i) ? [i] : [],
     };
   });
 

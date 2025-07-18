@@ -1,18 +1,18 @@
 // src/components/views/SessionView.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import PropTypes from 'prop-types';
+import { v4 as uuidv4 } from 'uuid';
 
-import HeaderBar  from '../layout/HeaderBar';
+import HeaderBar from '../layout/HeaderBar';
 import PromptInput from '../ui/PromptInput';
-import User   from '../ui/User';
+import User from '../ui/User';
 import System from '../ui/System';
 
 import { useAppState }  from '../../hooks/useAppState';
 
-import { splitQuery }         from '../../lib/query.splitter';
-import { runWorkflow }     from '../../lib/workflow.runner';
-import { taskEventEmitter }   from '../../lib/emitters';
+import { splitQuery } from '../../lib/query.llm';
+import { runWorkflow } from '../../lib/workflow.runner';
+import { taskEventEmitter } from '../../lib/emitters';
 
 SessionView.propTypes = {
   browserInstance: PropTypes.object,
@@ -275,7 +275,6 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
       */
       const resp  = await splitQuery(rawText);
       const { queries, dependencies } = resp;
-      console.log("queries", queries);
 
       /*
       * run the workflow

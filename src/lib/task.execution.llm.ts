@@ -4,17 +4,18 @@ import { callLLM } from "./llm.engine";
 
 export async function synthesizeResults(originalQuery: string, results: (string | undefined)[], model: string = 'gemini-2.5-flash') {
   const synthesisPrompt = `
-  You are Runtime-Agent. Combine the answers of each sub-query into a single,
-  well-structured response for the original question.
-  
-  Original question: "${originalQuery}"
-  
-  Sub-Query Answers:
-  ${results
-    .map((r, i) => `  • SQ${i}: ${r ?? "[no answer]"}`)
-    .join("\n")}
-  
-  Return one synthesize_results tool call.`;
+You are Runtime-Agent. Combine the answers of each sub-query into a single,
+well-structured response for the original question.
+
+Original question: "${originalQuery}"
+
+Sub-Query Answers:
+${results
+  .map((r, i) => `  • SQ${i}: ${r ?? "[no answer]"}`)
+  .join("\n")}
+
+Return one synthesize_results tool call.
+`;
 
   const synthResp = await callLLM({
     modelId: model,
@@ -24,9 +25,10 @@ export async function synthesizeResults(originalQuery: string, results: (string 
       maxOutputTokens: 1024,
       mode: "ANY",
       tools: [{ functionDeclarations: [SynthesisDeclaration] }]
-    }
+    }, 
+    ignoreFnCallCheck: true
   });
-
+  console.log("synthResp", synthResp);
   const synthFn = getFnCall(synthResp);
   const finalAnswer =
     synthFn?.args?.synthesized_answer ||

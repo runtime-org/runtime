@@ -3,7 +3,7 @@ import { QueryAnalysisDeclaration } from "./tools";
 import { getFnCall } from "./task.execution.helpers";
 import { QUERY_FEW_SHOT } from "./query.fewshot";
 
-export async function splitQuery(query) {
+export async function splitQuery(query: string) {
     const analysisDate = new Date().toISOString().split('T')[0];
     const prompt = `
 User-Query: "${query}"
@@ -52,7 +52,7 @@ Date: ${analysisDate}
 
     const resp = {
         queries: call?.args?.queries ?? [query],
-        dependencies: call?.args?.dependencies ?? []
+        dependencies: call?.args?.dependencies ?? [],
     }
     return resp;
 }

@@ -36,13 +36,14 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         /*
         ** build a deterministic step list
         */
+
         const steps = await planGenerator({ 
             subQuery, 
             queries, 
             dependencies, 
             results
         });
-        console.log("steps", results);
+        console.log("steps", steps);
 
         /*
         ** conversation context for stepTranslator
@@ -66,7 +67,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             }
 
             if (toolCall.name === 'done') {
-                console.log("answer:", toolCall.args?.text);
+                console.log("toolCall", toolCall);
                 results[qIdx] = toolCall.args?.text;
                 emit("task_action_complete", {
                     taskId,
@@ -99,6 +100,9 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 currentPage,
                 browserInstance
             })
+            if (toolCall.name === 'get_simplified_page_context') {
+                console.log("pptrRes", pptrRes);
+            }
 
             if (!pptrRes.success) {
                 /*
@@ -132,7 +136,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
 
             /* store visible text if this step might answer the SQ directly */
             if (pptrRes.data?.visibleText && !results[qIdx]) {
-                results[qIdx] = pptrRes.data.visibleText.slice(0, 2048);
+                results[qIdx] = pptrRes.data.visibleText.slice(0, 10048);
               }
 
             /*
@@ -146,7 +150,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             if (history.length > 20) history = history.slice(-20);
         }
     }
-
+    console.log("results", results);
     const finalResult = await synthesizeResults(originalQuery, results, model);
 
     /*
