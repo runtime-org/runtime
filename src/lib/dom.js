@@ -40,6 +40,7 @@ export class DomService {
                 '[role="checkbox"]',
                 '[role="radio"]',
                 '[onclick]',
+                '[jsaction*="click:"]',
                 '[data-testid]',
                 '.btn:not([disabled])',
                 '.button:not([disabled])',
@@ -60,6 +61,17 @@ export class DomService {
 
             // remove duplicates
             const uniqueElements = [...new Set(elements)];
+
+            /*
+            ** filter out parent elements that contain other interactive elements in order to select leaf elements for an action
+            */
+           const finalElements = uniqueElements.filter(element => {
+                for (const otherEl of uniqueElements) {
+                    if (el !== otherEl && el.contains(otherEl)) return false;
+                }
+                return true;
+            });
+
             const elementMap = {};
             let index = 0;
 
@@ -140,7 +152,8 @@ export class DomService {
                         value: element.value || undefined,
                         role: element.getAttribute('role') || undefined,
                         title: element.title || undefined,
-                        'data-testid': element.getAttribute('data-testid') || undefined
+                        'data-testid': element.getAttribute('data-testid') || undefined,
+                        'jsaction': element.getAttribute('jsaction') || undefined
                     },
                     rect: {
                         x: Math.round(rect.x),
