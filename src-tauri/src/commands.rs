@@ -1,12 +1,6 @@
-use tauri::{AppHandle, Emitter};
-
 use crate::sketchs::{
     BrowserConfig,
-    UserQuery,
-    LLMActionResponse,
-    PuppeteerExecutionResult
 };
-use crate::config::BACKEND_BASE_URL;
 use crate::platform::detect_browsers;
 use crate::network::{
     find_free_port, 
@@ -138,4 +132,51 @@ pub async fn validate_ws_endpoint(ws_endpoint: String, selected_browser_path: St
 pub async fn scan_for_existing_browsers(browser_type: String) -> Result<Option<String>, String> {
     println!("Scanning for existing {} instances...", browser_type);
     Ok(scan_for_existing_browser_instances(&browser_type).await)
+}
+
+#[tauri::command]
+pub async fn debug_browser_connection(browser_path: String) -> Result<String, String> {
+    println!("🔧 Starting browser connection debug for: {}", browser_path);
+    
+    let mut debug_info = Vec::new();
+    
+    if std::path::Path::new(&browser_path).exists() {
+        debug_info.push("Browser executable found".to_string());
+    } else {
+        return Ok("Browser executable not found at specified path".to_string());
+    }
+    
+    let browsers = detect_browsers();
+    if let Some(target_browser) = browsers.iter().find(|b| b.path == browser_path) {
+        debug_info.push(format!("Browser detected as: {}", target_browser.id));
+        
+        if let Some(ws_url) = scan_for_existing_browser_instances(&target_browser.id).await {
+            debug_info.push(format!("Found existing {} instance: {}", target_browser.id, ws_url));
+            return Ok(debug_info.join("\n"));
+        } else {
+            debug_info.push("No existing instances found".to_string());
+        }
+    }
+    
+    if let Some(port) = find_free_port(9222) {
+        debug_info.push(format!("Found free port: {}", port));
+        
+        debug_info.push("Attempting to launch browser...".to_string());
+        
+        match launch_new_instance(&browser_path, port).await {
+            Ok(ws_url) => {
+                debug_info.push(format!("Successfully launched browser with WebSocket: {}", ws_url));
+
+                let _ = sunset_browser_instance().await;
+                debug_info.push("🧹 Cleaned up test instance".to_string());
+            }
+            Err(e) => {
+                debug_info.push(format!("Failed to launch browser: {}", e));
+            }
+        }
+    } else {
+        debug_info.push("No free ports available".to_string());
+    }
+    
+    Ok(debug_info.join("\n"))
 }

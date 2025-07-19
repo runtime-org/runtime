@@ -4,7 +4,7 @@ use std::time::Duration;
 use once_cell::sync::Lazy;
 use reqwest::Client;
 use crate::sketchs::ManageableBrowserInstance;
-use crate::network::{get_browser_websocket_url, scan_for_existing_browser_instances, determine_browser_type, get_browser_info};
+use crate::network::{get_browser_websocket_url, scan_for_existing_browser_instances};
 use crate::platform::detect_browsers;
 
 static MANAGED_BROWSER: Lazy<Mutex<Option<ManageableBrowserInstance>>> = Lazy::new(|| Mutex::new(None));
@@ -100,24 +100,52 @@ pub async fn launch_new_instance(target_browser_path: &str, port: u16) -> Result
     println!("environment: {} mode", if is_dev { "development" } else { "production" });
     println!("allowed origins: {}", allowed_origins);
 
+    let is_edge = target_browser_path.to_lowercase().contains("edge") || target_browser_path.to_lowercase().contains("msedge");
+    let is_chrome = target_browser_path.to_lowercase().contains("chrome");
+    
     let mut command = Command::new(target_browser_path);
     command
         .arg(format!("--remote-debugging-port={}", port))
         .arg(format!("--remote-allow-origins={}", allowed_origins))
         .arg("--no-first-run")
-        .arg("--no-default-browser-check");
+        .arg("--no-default-browser-check")
+        .arg("--disable-background-timer-throttling")
+        .arg("--disable-backgrounding-occluded-windows")
+        .arg("--disable-renderer-backgrounding");
+
+    if is_chrome {
+        println!("Detected Google Chrome browser, adding Chrome-specific arguments");
+        command
+            .arg("--disable-background-networking")
+            .arg("--disable-default-apps")
+            .arg("--disable-sync")
+            .arg("--disable-translate")
+            .arg("--disable-ipc-flooding-protection");
+        
+        #[cfg(target_os = "windows")]
+        command.arg("--user-data-dir=C:\\temp\\chrome-debug-profile");
+        
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
+        command.arg("--user-data-dir=/tmp/chrome-debug-profile");
+    } else if is_edge {
+        println!("Detected Microsoft Edge browser, adding Edge-specific arguments");
+        command
+            .arg("--disable-background-networking")
+            .arg("--disable-default-apps");
+        
+        #[cfg(target_os = "windows")]
+        command.arg("--user-data-dir=C:\\temp\\edge-debug-profile");
+        
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
+        command.arg("--user-data-dir=/tmp/edge-debug-profile");
+    }
 
     if is_dev {
         command
             .arg("--disable-web-security")
-            .arg("--disable-features=VizDisplayCompositor");
-    }
-
-    // Determine if this is Edge and add Edge-specific arguments if needed
-    let is_edge = target_browser_path.to_lowercase().contains("edge") || target_browser_path.to_lowercase().contains("msedge");
-    if is_edge {
-        println!("Detected Microsoft Edge browser, adding Edge-specific arguments");
-        // Add any Edge-specific arguments if needed in the future
+            .arg("--disable-features=VizDisplayCompositor")
+            .arg("--ignore-certificate-errors")
+            .arg("--allow-running-insecure-content");
     }
 
     if is_dev {
@@ -126,14 +154,16 @@ pub async fn launch_new_instance(target_browser_path: &str, port: u16) -> Result
         command.arg("about:blank");
     }
 
+    println!("Full command: {:?}", command);
+
     let mut child_process = command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| format!("failed to launch browser: {}", e))?;
     
-    // Wait a bit longer for the browser to start up
-    tokio::time::sleep(Duration::from_secs(3)).await;
+    println!("Waiting for browser to initialize...");
+    tokio::time::sleep(Duration::from_secs(4)).await;
 
     // Verify the process is still running before attempting connection
     match child_process.try_wait() {
@@ -148,8 +178,33 @@ pub async fn launch_new_instance(target_browser_path: &str, port: u16) -> Result
         }
     }
 
-    match get_browser_websocket_url(port, 15, 1000).await {
+    // First, let's verify the debugging endpoint is accessible
+    let version_url = format!("http://127.0.0.1:{}/json/version", port);
+    println!("Testing debugging endpoint: {}", version_url);
+    
+    let client = Client::builder()
+        .timeout(Duration::from_secs(5))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+    
+    match client.get(&version_url).send().await {
+        Ok(resp) if resp.status().is_success() => {
+            println!("Debugging endpoint is accessible");
+        }
+        Ok(resp) => {
+            println!("Debugging endpoint returned status: {}", resp.status());
+        }
+        Err(e) => {
+            println!("Failed to access debugging endpoint: {}", e);
+            let _ = child_process.kill();
+            let _ = child_process.wait();
+            return Err(format!("Browser launched but debugging endpoint is not accessible. This usually means the browser didn't enable remote debugging properly. Error: {}", e));
+        }
+    }
+
+    match get_browser_websocket_url(port, 20, 500).await {
         Ok(ws_url) => {
+            println!("Successfully obtained WebSocket URL: {}", ws_url);
             let mut managed_browser_guard = MANAGED_BROWSER.lock().await;
             *managed_browser_guard = Some(ManageableBrowserInstance {
                 path: target_browser_path.to_string(),
@@ -165,7 +220,7 @@ pub async fn launch_new_instance(target_browser_path: &str, port: u16) -> Result
             // Kill the child process if connection failed
             let _ = child_process.kill();
             let _ = child_process.wait();
-            Err(format!("Failed to establish debugging connection: {}", e))
+            Err(format!("Failed to establish debugging connection: {}. The browser launched but DevTools Protocol is not responding.", e))
         }
     }
 }

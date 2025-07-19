@@ -31,19 +31,33 @@ pub async fn scan_for_existing_browser_instances(target_browser_type: &str) -> O
     println!("Scanning for existing {} instances on common debugging ports...", target_browser_type);
     
     for port in ports_to_scan {
-        if let Ok((browser_string, user_agent)) = get_browser_info(&port.to_string()).await {
-            let detected_browser_type = determine_browser_type(&browser_string, &user_agent);
-            
-            if detected_browser_type == target_browser_type {
-                println!("Found compatible {} instance on port {}", target_browser_type, port);
+        println!("  Checking port {}...", port);
+        
+        match get_browser_info(&port.to_string()).await {
+            Ok((browser_string, user_agent)) => {
+                let detected_browser_type = determine_browser_type(&browser_string, &user_agent);
+                println!("  Found browser on port {}: {} (detected as '{}')", port, browser_string, detected_browser_type);
                 
-                // Get the WebSocket URL for this instance
-                if let Ok(ws_url) = get_browser_websocket_url(port, 3, 500).await {
-                    println!("Successfully obtained WebSocket URL: {}", ws_url);
-                    return Some(ws_url);
+                if detected_browser_type == target_browser_type {
+                    println!("Found compatible {} instance on port {}", target_browser_type, port);
+                    
+                    match get_browser_websocket_url(port, 3, 500).await {
+                        Ok(ws_url) => {
+                            println!("Successfully obtained WebSocket URL: {}", ws_url);
+                            return Some(ws_url);
+                        }
+                        Err(e) => {
+                            println!("Failed to get WebSocket URL for port {}: {}", port, e);
+                        }
+                    }
+                } else if detected_browser_type != "unknown" {
+                    println!("Found {} on port {}, but looking for {}", detected_browser_type, port, target_browser_type);
                 }
-            } else if detected_browser_type != "unknown" {
-                println!("Found {} on port {}, but looking for {}", detected_browser_type, port, target_browser_type);
+            }
+            Err(e) => {
+                if !e.contains("Connection refused") && !e.contains("ConnectError") {
+                    println!("Error checking port {}: {}", port, e);
+                }
             }
         }
     }
@@ -104,42 +118,64 @@ pub fn determine_browser_type(browser_string: &str, user_agent: &str) -> String 
 
 pub async fn get_browser_websocket_url(port: u16, max_retries: u32, delay_ms: u64) -> Result<String, String> {
     let client = Client::builder()
-        .timeout(Duration::from_secs(5))
+        .timeout(Duration::from_secs(10)) 
         .build()
         .map_err(|e| e.to_string())?;
     
     let version_url = format!("http://127.0.0.1:{}/json/version", port);
-    println!("checking browser: {}", version_url);
+    println!("🔍 Checking browser debugging interface: {}", version_url);
 
     for attempt in 1..=max_retries {
+        println!("Attempt {}/{} to connect to browser...", attempt, max_retries);
+        
         match client.get(&version_url).send().await {
             Ok(resp) if resp.status().is_success() => {
+                println!("Browser responded successfully");
+                
                 let json_data = resp.json::<serde_json::Value>()
                     .await
                     .map_err(|e| format!("failed to parse JSON: {}", e))?;
                 
+                println!("Browser info response: {}", serde_json::to_string_pretty(&json_data).unwrap_or_default());
+                
                 if let Some(ws_url) = json_data["webSocketDebuggerUrl"].as_str() {
-                    println!("running at -> {}", ws_url);
+                    println!("Successfully obtained WebSocket URL: {}", ws_url);
                     return Ok(ws_url.to_string());
                 } else {
-                    return Err("webSocketDebuggerUrl not found in response".to_string());
+                    println!("webSocketDebuggerUrl not found in response");
+                    println!("Available fields: {:?}", json_data.as_object().map(|o| o.keys().collect::<Vec<_>>()));
+                    return Err("webSocketDebuggerUrl not found in browser response".to_string());
                 }
             }
             Ok(resp) => {
-                println!("attempt {}/{}: browser responded with status {}", attempt, max_retries, resp.status());
+                println!("Browser responded with status {}: {}", resp.status(), resp.status().canonical_reason().unwrap_or("Unknown"));
+                
+                // Try to read the response body for more info
+                if let Ok(body) = resp.text().await {
+                    if !body.is_empty() {
+                        println!("Response body: {}", body);
+                    }
+                }
             }
             Err(e) => {
-                println!("attempt {}/{}: failed to connect to browser: {}", attempt, max_retries, e);
+                println!("Connection failed: {}", e);
+                
+                // Check if this is a connection refused error (common when browser isn't ready)
+                if e.to_string().contains("Connection refused") || e.to_string().contains("ConnectError") {
+                    println!("Browser may still be starting up...");
+                } else {
+                    println!("Unexpected error type - this may indicate a configuration issue");
+                }
             }
         }
 
         if attempt < max_retries {
-            println!("Retrying in {}ms...", delay_ms);
+            println!("Waiting {}ms before next attempt...", delay_ms);
             tokio::time::sleep(Duration::from_millis(delay_ms)).await;
         }
     }
 
-    Err(format!("failed to connect to browser after {} attempts", max_retries))
+    Err(format!("Failed to connect to browser debugging interface after {} attempts. The browser may not have started with debugging enabled.", max_retries))
 }
 
 // pub async fn check_websocket_readiness(ws_url: &str, max_attempts: u32) -> Result<bool, String> {
