@@ -367,7 +367,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 try {
                     // apply highlights
                     browserState = await domService.getClickableElementsWithIndices({
-                        highlightElements: true,
+                        highlightElements: false,
                         maxElements: parameters.max_elements || 50,
                         focusElement: parameters.focus_element_for_screenshot
                     });
