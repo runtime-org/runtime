@@ -7,8 +7,6 @@ export async function synthesizeResults(originalQuery: string, results: (string 
 You are Runtime-Agent. Combine the answers of each sub-query into a single,
 well-structured response for the original question.
 
-And please use markdown to format the response.
-
 Original question: "${originalQuery}"
 
 Sub-Query Answers:
@@ -17,6 +15,7 @@ ${results
   .join("\n")}
 
 Return one synthesize_results tool call.
+Please format your response using markdown. Whenever possible, present information in bullet points for clarity and readability.
 `;
 
   const synthResp = await callLLM({
@@ -24,7 +23,7 @@ Return one synthesize_results tool call.
     contents: [{ role: "user", parts: [{ text: synthesisPrompt }] }],
     config: {
       temperature: 0.2,
-      maxOutputTokens: 1024,
+      maxOutputTokens: 2048,
       mode: "ANY",
       tools: [{ functionDeclarations: [SynthesisDeclaration] }]
     }, 

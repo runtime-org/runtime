@@ -1,4 +1,5 @@
 import { Type } from '@google/genai';
+
 /*
 ** plan declaration
 */
@@ -46,3 +47,22 @@ export const EvaluateAnswerTool = {
     required: ["complete","feedback"]
   }
 }
+
+/*
+** summary tool declaration
+*/
+export const SummaryDeclaration = {
+    name: "summarize_text",
+    description:
+      `Take raw visible text from a web page and return a concise summary 
+      containing ONLY the information or annexes information that may help construct the answer to the current sub-query.
+      The summary should be factual and concise.
+      Strip ads, navigation, cookie banners, unrelated sections, etc.`,
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        summary:   { type: Type.STRING,  description: "Summary of the raw visible text" }
+      },
+      required: ["summary"]
+    }
+};

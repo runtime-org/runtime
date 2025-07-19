@@ -1,11 +1,19 @@
+import { Page } from "puppeteer-core/lib/esm/puppeteer/puppeteer-core-browser.js";
 
 export class DomService {
-    constructor(page) {
+    private page: Page;
+
+    constructor(page: Page) {
         this.page = page;
     }
 
     // get clickable elements with indices
-    async getClickableElementsWithIndices(options = {}) {
+    async getClickableElementsWithIndices(options: {
+        highlightElements?: boolean;
+        maxElements?: number;
+        includeHidden?: boolean;
+        focusElement?: number;
+    } = {}) {
         const {
             highlightElements = false,
             maxElements = 50,
@@ -16,13 +24,13 @@ export class DomService {
         const result = await this.page.evaluate((opts) => {
             // remove any existing highlights first
             document.querySelectorAll('[data-runtime-highlight]').forEach(el => {
-                if (el.getAttribute('data-runtime-highlight').startsWith('label-')) {
+                if (el.getAttribute('data-runtime-highlight')?.startsWith('label-')) {
                     el.remove();
                 } else {
                     el.removeAttribute('data-runtime-highlight');
-                    el.style.removeProperty('outline');
-                    el.style.removeProperty('outline-offset');
-                    el.style.removeProperty('box-shadow');
+                    (el as HTMLElement).style.removeProperty('outline');
+                    (el as HTMLElement).style.removeProperty('outline-offset');
+                    (el as HTMLElement).style.removeProperty('box-shadow');
                 }
             });
 
@@ -50,7 +58,7 @@ export class DomService {
                 '[contenteditable="true"]'
             ];
 
-            const elements = [];
+            const elements: Element[] = [];
             clickableSelectors.forEach(selector => {
                 try {
                     elements.push(...Array.from(document.querySelectorAll(selector)));
@@ -67,7 +75,7 @@ export class DomService {
             */
            const finalElements = uniqueElements.filter(element => {
                 for (const otherEl of uniqueElements) {
-                    if (el !== otherEl && el.contains(otherEl)) return false;
+                    if (element !== otherEl && (element as HTMLElement).contains(otherEl as HTMLElement)) return false;
                 }
                 return true;
             });
@@ -144,14 +152,14 @@ export class DomService {
                     attributes: {
                         id: element.id || undefined,
                         class: element.className || undefined,
-                        type: element.type || undefined,
-                        name: element.name || undefined,
-                        href: element.href || undefined,
+                        type: (element as HTMLInputElement).type || undefined,
+                        name: (element as HTMLInputElement).name || undefined,
+                        href: (element as HTMLAnchorElement).href || undefined,
                         'aria-label': element.getAttribute('aria-label') || undefined,
-                        placeholder: element.placeholder || undefined,
-                        value: element.value || undefined,
+                        placeholder: (element as HTMLInputElement).placeholder || undefined,
+                        value: (element as HTMLInputElement).value || undefined,
                         role: element.getAttribute('role') || undefined,
-                        title: element.title || undefined,
+                        title: (element as HTMLElement).title || undefined,
                         'data-testid': element.getAttribute('data-testid') || undefined,
                         'jsaction': element.getAttribute('jsaction') || undefined
                     },
@@ -181,19 +189,19 @@ export class DomService {
 
                 // add highlighting if requested
                 if (opts.highlightElements && isVisible) {
-                    element.setAttribute('data-runtime-highlight', index);
+                    element.setAttribute('data-runtime-highlight', index.toString());
                     
                     const isFocused = index === opts.focusElement;
                     const color = isFocused ? '#ff0000' : `hsl(${(index * 137) % 360}, 70%, 50%)`;
                     const outlineWidth = isFocused ? '2px' : '1px';
                     
-                    element.style.outline = `${outlineWidth} solid ${color}`;
-                    element.style.outlineOffset = '1px';
-                    element.style.boxShadow = `0 0 0 1px ${color}`;
+                    (element as HTMLElement).style.outline = `${outlineWidth} solid ${color}`;
+                    (element as HTMLElement).style.outlineOffset = '1px';
+                    (element as HTMLElement).style.boxShadow = `0 0 0 1px ${color}`;
                     
                     // add index label with lower z-index to ensure overlay can cover it
                     const label = document.createElement('div');
-                    label.textContent = index;
+                    label.textContent = index.toString();
                     label.style.cssText = `
                         position: absolute;
                         top: ${rect.top + window.scrollY - 20}px;
@@ -244,20 +252,20 @@ export class DomService {
     async removeHighlights() {
         await this.page.evaluate(() => {
             document.querySelectorAll('[data-runtime-highlight]').forEach(el => {
-                if (el.getAttribute('data-runtime-highlight').startsWith('label-')) {
+                if (el.getAttribute('data-runtime-highlight')?.startsWith('label-')) {
                     el.remove();
                 } else {
                     el.removeAttribute('data-runtime-highlight');
-                    el.style.removeProperty('outline');
-                    el.style.removeProperty('outline-offset');
-                    el.style.removeProperty('box-shadow');
+                    (el as HTMLElement).style.removeProperty('outline');
+                    (el as HTMLElement).style.removeProperty('outline-offset');
+                    (el as HTMLElement).style.removeProperty('box-shadow');
                 }
             });
         });
     }
 
     // click element by index
-    async clickElementByIndex(index, elementMap) {
+    async clickElementByIndex(index: number, elementMap: Record<number, any>) {
         if (!elementMap[index]) {
             throw new Error(`Element with index ${index} not found`);
         }
@@ -275,15 +283,15 @@ export class DomService {
             }
 
             // scroll into view if needed
-            element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            (element as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
             
             // check if it's a file input
-            if (element.type === 'file') {
+            if ((element as HTMLInputElement).type === 'file') {
                 return { isFileInput: true, message: 'File input detected - use upload_file action instead' };
             }
 
             // click the element
-            element.click();
+            (element as HTMLElement).click();
             
             return { 
                 success: true, 
@@ -299,7 +307,7 @@ export class DomService {
         try {
             const snapshot = await this.page.accessibility.snapshot({ interestingOnly: true });
             
-            const flattenTree = (node, depth = 0, result = []) => {
+            const flattenTree = (node: any, depth = 0, result: string[] = []) => {
                 if (node.role && node.name) {
                     result.push(`${'  '.repeat(depth)}${node.role} ${node.name}`);
                 }
@@ -322,7 +330,7 @@ export class DomService {
 
     async getVisibleText(selector = 'body') {
         try {
-            const raw = await this.page.$eval(selector, el => el.innerText);
+            const raw = await this.page.$eval(selector, (el: Element) => (el as HTMLElement).innerText);
         
             return raw
             .replace(/\s+\n/g, '\n')    // trailing spaces at line ends

@@ -13,6 +13,7 @@ import { useAppState }  from '../../hooks/useAppState';
 import { splitQuery } from '../../lib/query.llm';
 import { runWorkflow } from '../../lib/workflow.runner';
 import { taskEventEmitter } from '../../lib/emitters';
+import { ensureThinking } from '../../lib/task.execution.helpers';
 
 SessionView.propTypes = {
   browserInstance: PropTypes.object,
@@ -49,6 +50,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
   */
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior:'smooth' }); }, [messages]);
 
+
   /*
   * load the session history on mount / switch
   */
@@ -67,6 +69,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
     ** handle task updates
     */
     const handleTaskUpdate = ({ taskId, action, speakToUser, status, error}) => {
+
       setMessages(prev => {
         /* 
         ** create a new system message
@@ -144,7 +147,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
     }
 
     /*
-    * starting the action (puppeteer or llm)
+    ** starting the action (puppeteer or llm)
     */
     const handleActionStart = ({ taskId, action, speakToUser, status, actionId }) => {
       setMessages(prev => {
@@ -200,7 +203,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
     };
 
     /*
-    * finished or errored the action (puppeteer or llm)
+    ** finished or errored the action (puppeteer or llm)
     */
     const handleActionDone = ({ taskId, status, error, actionId }) => {
 

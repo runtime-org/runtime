@@ -1,9 +1,14 @@
 import { Type } from "@google/genai";
 
+/*
+** synthesize results tool declaration
+*/
 export const SynthesisDeclaration = [
     {
       name: 'synthesize_results',
-      description: 'Synthesize multiple research results into a comprehensive final answer',
+      description: `Synthesize multiple research results into a comprehensive final answer.
+      If certain information is not available, clearly state that there is no definite answer based on the information at hand.
+      Do not fabricate any information; only provide what has been found.`,
       parameters: {
         type: Type.OBJECT,
         properties: {
@@ -31,4 +36,5 @@ export const SynthesisDeclaration = [
         required: ['synthesized_answer', 'key_findings', 'confidence_level', 'gaps_or_limitations']
       }
     }
-  ];
+];
+

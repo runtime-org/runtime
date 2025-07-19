@@ -7,7 +7,12 @@ import {
     pushHistory,
 } from "./task.execution.helpers";
 import { synthesizeResults } from "./task.execution.llm";
-import { stepTranslator, planGenerator, evalEngine } from "./plan.orchestrator";
+import { 
+    stepTranslator, 
+    planGenerator, 
+    evalEngine,
+    summarizeText
+} from "./plan.orchestrator";
 
 
 export async function runSequentialTask(opts: SeqRunOptions) {
@@ -95,7 +100,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 const sentence = steps[s];
                 console.log("\n📝 Step", s+1, "/", steps.length, ":", sentence);
                 console.log("📚 Current history length:", history.length);
-                console.log("📚 History context:", history.map((h, i) => `${i}: ${JSON.stringify(h).substring(0, 100)}...`));
+                console.log("📚 History context:", history);
 
                 console.log(`📤 Calling stepTranslator with step: "${sentence}"`);
                 const toolCall = await stepTranslator(sentence, history);
@@ -114,6 +119,8 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 if (toolCall.name === "done") {
                     finalAnswer = toolCall.args?.text ?? "";
                     console.log("✅ SQ", qIdx, "marked as done with answer:", finalAnswer);
+                    results[qIdx] = finalAnswer;
+                    planDone = true;
                     emit("task_action_complete", {
                         taskId,
                         action : "done",
@@ -176,6 +183,19 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                         dataSize: pptrRes.data ? Object.keys(pptrRes.data).length : 0,
                         visibleTextLength: pptrRes.data?.visibleText ? pptrRes.data.visibleText.length : 0
                     });
+                }
+
+                /*
+                ** of the current tool called is get_visible_text, 
+                ** then immediately summarize the text, before storing it in history
+                */
+                if (toolCall.name === "get_visible_text") {
+                    const summary = await summarizeText({
+                        rawText: pptrRes.data?.visibleText as string,
+                        query: subQuery
+                    });
+                    console.log("📄 Summary of the visible text:", summary);
+                    pptrRes.data.summary = summary;
                 }
 
                 emit("task_action_complete", {

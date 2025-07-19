@@ -1,4 +1,5 @@
 import { taskEventEmitter } from "./emitters";
+import { v4 as uuidv4 } from 'uuid';
 
 /*
 ** get the function call from the response
@@ -18,24 +19,55 @@ export function emit(event: string, payload: any) {
 }
 
 /*
+** ensure thinking is in the plans array
+*/
+export function ensureThinking(sysMsg: any, isProcessing: boolean) {
+    if (!sysMsg?.tasks?.length) return sysMsg;
+
+    const task = sysMsg.tasks[sysMsg.tasks.length - 1];
+    const hasThinking = task.plans.some(p => p.action === "thinking");
+
+    if (isProcessing && !hasThinking) {
+        task.plans.push({
+          id        : uuidv4(),
+          action    : "thinking",
+          title     : "Runtime is working…",
+          status    : "running",
+          timestamp : new Date().toISOString()
+        });
+    }
+
+    if (!isProcessing && hasThinking) {
+        task.plans = task.plans.filter(p => p.action !== "thinking");
+    }
+
+    return sysMsg;
+}
+
+
+/*
 ** push simplified page context to history
 ** if the action is not get_simplified_page_context, push the semantic explanation of the call
 ** if the action is get_simplified_page_context, push the 60 element of the raw results
 */
 export function pushHistory(history: any[], toolName: string, args: any, rawResult: any) {
     
-    let semanticResult;
     if (toolName === 'get_simplified_page_context') {
         const userMessage = {
             role: 'user',
             parts: [ { functionCall: { name: toolName, args: { ...args, data: rawResult } } } ]
         }
         history.push(userMessage);
-    } else {
-        semanticResult = semanticPptrExplanation(toolName, args);
+    } else if (toolName === 'get_visible_text') {
         const userMessage = {
             role: 'user',
-            parts: [ { text: semanticResult } ]
+            parts: [ { text: `Successfully retrieved visible text: ${rawResult.summary}` } ]
+        }
+        history.push(userMessage);
+    } else {
+        const userMessage = {
+            role: 'user',
+            parts: [ { text: semanticPptrExplanation(toolName, args, rawResult) } ]
         }
         history.push(userMessage);
     }   
@@ -45,7 +77,7 @@ export function pushHistory(history: any[], toolName: string, args: any, rawResu
 ** semantic explanation of the pptr action
 */
 
-export function semanticPptrExplanation(fnName: string, fnArgs: any) {
+export function semanticPptrExplanation(fnName: string, fnArgs: any, rawResult?: any) {
     let description = '';
     
     switch (fnName) {
@@ -128,6 +160,10 @@ export function semanticPptrExplanation(fnName: string, fnArgs: any) {
         */
         case 'get_accessibility_tree':
             description = `Successfully retrieved accessibility tree with ${fnArgs.number_of_elements} elements`;
+            break;
+        
+        case 'get_visible_text':
+            description = `Successfully retrieved visible text: ${rawResult.summary}`;
             break;
             
         /*
