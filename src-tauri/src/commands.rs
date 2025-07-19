@@ -7,7 +7,8 @@ use crate::network::{
     extract_port_from_ws_url, 
     get_browser_info, 
     determine_browser_type,
-    scan_for_existing_browser_instances
+    scan_for_existing_browser_instances,
+    create_new_page
 };
 use crate::browser_manager::{
     get_running_instance,
@@ -30,18 +31,14 @@ pub async fn fetch_available_browsers() -> Result<Vec<BrowserConfig>, String> {
 pub async fn validate_connection(ws_endpoint: String, selected_browser_path: String) -> Result<String, String> {
     let port = extract_port_from_ws_url(&ws_endpoint)?;
 
-    // browser info
     let (browser_string, user_agent) = get_browser_info(&port).await?;
     
-    // broswer type
     let running_browser_type = determine_browser_type(&browser_string, &user_agent);
     
-    // selected browser
     let browsers = detect_browsers();
     let selected_browser = browsers.iter()
         .find(|b| b.path == selected_browser_path);
     
-    // selected vs running
     match selected_browser {
         Some(browser) => {
             if running_browser_type == browser.id {
@@ -67,9 +64,23 @@ pub async fn launch_browser(browser_path: Option<String>) -> Result<String, Stri
     
     println!("Attempting to connect to browser: {}", target_browser_path);
     
-    // First, try to connect to any existing compatible instance
     if let Some(ws_url) = get_running_instance(&target_browser_path).await {
         println!("Successfully connected to existing browser instance");
+        
+        if let Ok(port_str) = extract_port_from_ws_url(&ws_url) {
+            if let Ok(port) = port_str.parse::<u16>() {
+
+                match create_new_page(port, Some("https://www.google.com")).await {
+                    Ok(page_id) => {
+                        println!("Created new page with ID: {}", page_id);
+                    }
+                    Err(e) => {
+                        println!("Warning: Could not create new page: {}", e);
+                    }
+                }
+            }
+        }
+        
         return Ok(ws_url);
     }
     
@@ -81,6 +92,16 @@ pub async fn launch_browser(browser_path: Option<String>) -> Result<String, Stri
     match launch_new_instance(&target_browser_path, port).await {
         Ok(ws_url) => {
             println!("Successfully launched new browser instance");
+            
+            match create_new_page(port, Some("https://www.google.com")).await {
+                Ok(page_id) => {
+                    println!("Created new page with ID: {}", page_id);
+                }
+                Err(e) => {
+                    println!("Warning: Could not create additional new page: {}", e);
+                }
+            }
+            
             Ok(ws_url)
         }
         Err(e) => {
@@ -93,6 +114,37 @@ pub async fn launch_browser(browser_path: Option<String>) -> Result<String, Stri
 #[tauri::command]
 pub async fn disconnect_from_browser() -> Result<(), String> {
     sunset_browser_instance().await
+}
+
+#[tauri::command]
+pub async fn force_close_browser() -> Result<(), String> {
+    println!("Force closing browser process (if launched by app)...");
+    
+    use crate::browser_manager::MANAGED_BROWSER;
+    let mut managed_browser_guard = MANAGED_BROWSER.lock().await;
+    
+    if let Some(mut instance) = managed_browser_guard.take() {
+        if instance.launched_by_app {
+            if let Some(ref mut child) = instance.child {
+                println!("Force closing browser launched by app: {}", instance.path);
+                if let Err(e) = child.kill() {
+                    eprintln!("Failed to kill browser process: {}", e);
+                } else {
+                    let _ = child.wait();
+                    println!("Browser process closed successfully");
+                }
+            } else {
+                println!("Browser was launched by app but no process handle available");
+            }
+        } else {
+            println!("Browser was not launched by app, cannot force close");
+            *managed_browser_guard = Some(instance);
+        }
+        Ok(())
+    } else {
+        println!("No managed browser instance to close");
+        Ok(())
+    }
 }
 
 #[tauri::command]

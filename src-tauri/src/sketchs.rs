@@ -4,17 +4,18 @@ use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BrowserConfig {
-    pub id: String, // chrome, edge ofr now.
+    pub id: String,
     pub name: String,
     pub path: String
 }
 
 #[derive(Debug)]
 pub struct ManageableBrowserInstance {
-    pub child: Child,
+    pub child: Option<Child>, 
     pub path: String,
     pub port: u16,
-    pub ws_url: String
+    pub ws_url: String,
+    pub launched_by_app: bool, 
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

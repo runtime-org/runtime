@@ -178,6 +178,42 @@ pub async fn get_browser_websocket_url(port: u16, max_retries: u32, delay_ms: u6
     Err(format!("Failed to connect to browser debugging interface after {} attempts. The browser may not have started with debugging enabled.", max_retries))
 }
 
+pub async fn create_new_page(port: u16, url: Option<&str>) -> Result<String, String> {
+    let client = Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+    
+    let target_url = url.unwrap_or("about:blank");
+    let new_page_url = format!("http://127.0.0.1:{}/json/new?{}", port, target_url);
+    
+    println!("Creating new page: {}", new_page_url);
+    
+    match client.get(&new_page_url).send().await {
+        Ok(resp) if resp.status().is_success() => {
+            let json_data = resp.json::<serde_json::Value>()
+                .await
+                .map_err(|e| format!("Failed to parse new page response: {}", e))?;
+            
+            println!("New page created successfully: {}", serde_json::to_string_pretty(&json_data).unwrap_or_default());
+            
+            if let Some(page_id) = json_data["id"].as_str() {
+                Ok(page_id.to_string())
+            } else {
+                Err("No page ID returned from new page creation".to_string())
+            }
+        }
+        Ok(resp) => {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            Err(format!("Failed to create new page. Status: {}, Body: {}", status, body))
+        }
+        Err(e) => {
+            Err(format!("Failed to create new page: {}", e))
+        }
+    }
+}
+
 // pub async fn check_websocket_readiness(ws_url: &str, max_attempts: u32) -> Result<bool, String> {
 //     for attempt in 1..=max_attempts {
 //         match connect_async(ws_url).await {

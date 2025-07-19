@@ -4,10 +4,10 @@ use std::time::Duration;
 use once_cell::sync::Lazy;
 use reqwest::Client;
 use crate::sketchs::ManageableBrowserInstance;
-use crate::network::{get_browser_websocket_url, scan_for_existing_browser_instances};
+use crate::network::{get_browser_websocket_url, scan_for_existing_browser_instances, extract_port_from_ws_url};
 use crate::platform::detect_browsers;
 
-static MANAGED_BROWSER: Lazy<Mutex<Option<ManageableBrowserInstance>>> = Lazy::new(|| Mutex::new(None));
+pub static MANAGED_BROWSER: Lazy<Mutex<Option<ManageableBrowserInstance>>> = Lazy::new(|| Mutex::new(None));
 
 fn get_allowed_origins() -> String {
     let is_dev = cfg!(debug_assertions);
@@ -39,40 +39,49 @@ pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
     // First, check if we have a managed browser instance
     if let Some(instance) = &mut *managed_browser_guard {
         if instance.path == target_browser_path {
-            // is the child process still running?
-            match instance.child.try_wait() {
-                Ok(Some(_)) => {
-                    println!("browser process has exited");
-                    *managed_browser_guard = None;
-                }
-                Ok(None) => {
-                    println!("reusing the runtime instance at {}", instance.port);
-                    let client = Client::builder().timeout(Duration::from_secs(2)).build().ok()?;
-                    let version_url = format!("http://127.0.0.1:{}/json/version", instance.port);
-                    match client.get(&version_url).send().await {
-                        Ok(resp) if resp.status().is_success() => {
-                            println!("Running at -> {}", instance.ws_url);
-                            return Some(instance.ws_url.clone());
-                        }
+            if let Some(ref mut child) = instance.child {
+                match child.try_wait() {
+                    Ok(Some(_)) => {
+                        println!("browser process has exited");
+                        *managed_browser_guard = None;
+                    }
+                    Ok(None) => {
+                        println!("reusing the runtime instance at {}", instance.port);
+                        let client = Client::builder().timeout(Duration::from_secs(2)).build().ok()?;
+                        let version_url = format!("http://127.0.0.1:{}/json/version", instance.port);
+                        match client.get(&version_url).send().await {
+                            Ok(resp) if resp.status().is_success() => {
+                                println!("Running at -> {}", instance.ws_url);
+                                return Some(instance.ws_url.clone());
+                            }
 
-                        _ => {
-                            println!("failed to reconnect. killing it.");
-                            let _ = instance.child.kill();
-                            let _ = instance.child.wait();
-                            *managed_browser_guard = None;
+                            _ => {
+                                println!("failed to reconnect. clearing instance.");
+                                *managed_browser_guard = None;
+                            }
                         }
                     }
+                    Err(e) => {
+                        println!("failed to check if browser is running: {}. clearing instance.", e);
+                        *managed_browser_guard = None;
+                    }
                 }
-                Err(e) => {
-                    println!("failed to check if browser is running: {}. will launch a new one.", e);
-                    let _ = instance.child.kill();
-                    *managed_browser_guard = None;
+            } else {
+                let client = Client::builder().timeout(Duration::from_secs(2)).build().ok()?;
+                let version_url = format!("http://127.0.0.1:{}/json/version", instance.port);
+                match client.get(&version_url).send().await {
+                    Ok(resp) if resp.status().is_success() => {
+                        println!("Existing browser still running at -> {}", instance.ws_url);
+                        return Some(instance.ws_url.clone());
+                    }
+                    _ => {
+                        println!("Existing browser no longer available. clearing instance.");
+                        *managed_browser_guard = None;
+                    }
                 }
             }
         } else {
-            println!("Switching browser. Closing prev instance: {}", instance.path);
-            let _ = instance.child.kill();
-            let _ = instance.child.wait();
+            println!("Switching browser. Clearing previous instance: {}", instance.path);
             *managed_browser_guard = None;
         }
     }
@@ -84,6 +93,16 @@ pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
         
         if let Some(ws_url) = scan_for_existing_browser_instances(&target_browser.id).await {
             println!("Found existing {} instance, connecting...", target_browser.id);
+            
+            let port = extract_port_from_ws_url(&ws_url).ok()?.parse().ok()?;
+            *managed_browser_guard = Some(ManageableBrowserInstance {
+                child: None,
+                path: target_browser_path.to_string(),
+                port,
+                ws_url: ws_url.clone(),
+                launched_by_app: false,
+            });
+            
             return Some(ws_url);
         }
     }
@@ -210,7 +229,8 @@ pub async fn launch_new_instance(target_browser_path: &str, port: u16) -> Result
                 path: target_browser_path.to_string(),
                 port,
                 ws_url: ws_url.clone(),
-                child: child_process,
+                child: Some(child_process),
+                launched_by_app: true,
             });
             println!("browser launched successfully with CORS support");
             Ok(ws_url)
@@ -226,31 +246,22 @@ pub async fn launch_new_instance(target_browser_path: &str, port: u16) -> Result
 }
 
 pub async fn sunset_browser_instance() -> Result<(), String> {
-    println!("attempting to close the debug browser...");
+    println!("Disconnecting from browser debugging session...");
     let mut managed_browser_guard = MANAGED_BROWSER.lock().await;
     
-    if let Some(mut instance) = managed_browser_guard.take() { // .take() removes it from Option
-        println!("found managed browser process to close: {}", instance.path);
+    if let Some(instance) = managed_browser_guard.take() { // .take() removes it from Option
+        println!("Found managed browser instance: {}", instance.path);
         
-        if instance.child.try_wait().map_err(|e| format!("error checking child process status: {}", e))?.is_none() {
-            // let's kill it
-            if let Err(e) = instance.child.kill() {
-                eprintln!("failed to kill browser process {}: {}", instance.path, e);
-                // proceed to wait for it anyway
-            }
-            
-            match instance.child.wait() {
-                Ok(status) => println!("browser process {} exited with status: {}", instance.path, status),
-                Err(e) => eprintln!("error waiting for browser process {} to exit: {}", instance.path, e),
-            }
+        if instance.launched_by_app {
+            println!("Browser was launched by the app, but keeping it running as requested");
         } else {
-            println!("browser process {} was already exited.", instance.path);
+            println!("Browser was an existing instance, keeping it running");
         }
         
-        println!("managed browser instance for {} closed and removed.", instance.path);
+        println!("Disconnected from browser debugging session. Browser remains open.");
         Ok(())
     } else {
-        println!("no managed browser process was running to close.");
+        println!("No managed browser instance to disconnect from.");
         Ok(())
     }
 }
