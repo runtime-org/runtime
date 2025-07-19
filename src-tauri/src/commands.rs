@@ -62,50 +62,24 @@ pub async fn launch_browser(browser_path: Option<String>) -> Result<String, Stri
             .ok_or_else(|| "No browser found".to_string())?
     };
     
-    println!("Attempting to connect to browser: {}", target_browser_path);
-    
     if let Some(ws_url) = get_running_instance(&target_browser_path).await {
-        println!("Successfully connected to existing browser instance");
-        
         if let Ok(port_str) = extract_port_from_ws_url(&ws_url) {
             if let Ok(port) = port_str.parse::<u16>() {
-
-                match create_new_page(port, Some("https://www.google.com")).await {
-                    Ok(page_id) => {
-                        println!("Created new page with ID: {}", page_id);
-                    }
-                    Err(e) => {
-                        println!("Warning: Could not create new page: {}", e);
-                    }
-                }
+                let _ = create_new_page(port, Some("https://www.google.com")).await;
             }
         }
         
         return Ok(ws_url);
     }
     
-    // No existing instance found, launch a new one
-    println!("No existing compatible browser instance found, launching new instance...");
     let port = find_free_port(9222).ok_or_else(|| "Failed to find a free port".to_string())?;
-    println!("Found free port: {}", port);
     
     match launch_new_instance(&target_browser_path, port).await {
         Ok(ws_url) => {
-            println!("Successfully launched new browser instance");
-            
-            match create_new_page(port, Some("https://www.google.com")).await {
-                Ok(page_id) => {
-                    println!("Created new page with ID: {}", page_id);
-                }
-                Err(e) => {
-                    println!("Warning: Could not create additional new page: {}", e);
-                }
-            }
-            
+            let _ = create_new_page(port, Some("https://www.google.com")).await;
             Ok(ws_url)
         }
         Err(e) => {
-            println!("Failed to launch new browser instance: {}", e);
             Err(format!("Failed to launch browser: {}. Please ensure the browser is properly installed and not running with conflicting arguments.", e))
         }
     }
@@ -118,39 +92,26 @@ pub async fn disconnect_from_browser() -> Result<(), String> {
 
 #[tauri::command]
 pub async fn force_close_browser() -> Result<(), String> {
-    println!("Force closing browser process (if launched by app)...");
-    
     use crate::browser_manager::MANAGED_BROWSER;
     let mut managed_browser_guard = MANAGED_BROWSER.lock().await;
     
     if let Some(mut instance) = managed_browser_guard.take() {
         if instance.launched_by_app {
             if let Some(ref mut child) = instance.child {
-                println!("Force closing browser launched by app: {}", instance.path);
-                if let Err(e) = child.kill() {
-                    eprintln!("Failed to kill browser process: {}", e);
-                } else {
-                    let _ = child.wait();
-                    println!("Browser process closed successfully");
-                }
-            } else {
-                println!("Browser was launched by app but no process handle available");
+                let _ = child.kill();
+                let _ = child.wait();
             }
         } else {
-            println!("Browser was not launched by app, cannot force close");
             *managed_browser_guard = Some(instance);
         }
         Ok(())
     } else {
-        println!("No managed browser instance to close");
         Ok(())
     }
 }
 
 #[tauri::command]
 pub async fn validate_ws_endpoint(ws_endpoint: String, selected_browser_path: String) -> Result<String, String> {
-    println!("validating saved endpoint: {}", ws_endpoint);
-    
     let port = extract_port_from_ws_url(&ws_endpoint)?;
     
     match get_browser_info(&port).await {
@@ -164,7 +125,6 @@ pub async fn validate_ws_endpoint(ws_endpoint: String, selected_browser_path: St
             match selected_browser {
                 Some(browser) => {
                     if running_browser_type == browser.id {
-                        println!("saved endpoint is valid and matches selected browser");
                         Ok(format!("reconnected to existing {} instance", browser.id))
                     } else {
                         Err(format!("browser mismatch! selected: {}, running: {}", browser.id, running_browser_type))
@@ -174,7 +134,6 @@ pub async fn validate_ws_endpoint(ws_endpoint: String, selected_browser_path: St
             }
         }
         Err(e) => {
-            println!("saved endpoint is no longer valid: {}", e);
             Err(format!("saved browser connection is no longer available: {}", e))
         }
     }
@@ -182,14 +141,11 @@ pub async fn validate_ws_endpoint(ws_endpoint: String, selected_browser_path: St
 
 #[tauri::command]
 pub async fn scan_for_existing_browsers(browser_type: String) -> Result<Option<String>, String> {
-    println!("Scanning for existing {} instances...", browser_type);
     Ok(scan_for_existing_browser_instances(&browser_type).await)
 }
 
 #[tauri::command]
 pub async fn debug_browser_connection(browser_path: String) -> Result<String, String> {
-    println!("🔧 Starting browser connection debug for: {}", browser_path);
-    
     let mut debug_info = Vec::new();
     
     if std::path::Path::new(&browser_path).exists() {
