@@ -1,26 +1,24 @@
-import React, { useState, } from 'react';
+import React, { useState } from 'react';
 import TabOption from './TabOption';
 import PlanIcon from './PlanIcon';
 import { TbBrowserShare } from "react-icons/tb";
-import Construction from './Construction';
 import PropTypes from 'prop-types';
+
+import Construction from './Construction';
+import ParseText from './ParseText';
 
 System.propTypes = {
   message: PropTypes.object.isRequired,
   isError: PropTypes.bool,
   isComplete: PropTypes.bool,
-  requiresUserInput: PropTypes.bool,
-  isParallelWorkflow: PropTypes.bool,
-  workflowInfo: PropTypes.object
+  requiresUserInput: PropTypes.bool
 };
 
 export default function System({ 
   message, 
   isError = false, 
   isComplete = false, 
-  requiresUserInput = false,
-  isParallelWorkflow = false,
-  workflowInfo = null 
+  requiresUserInput = false
 }) {
   const [activeTab, setActiveTab] = useState('plan');
 
@@ -28,30 +26,15 @@ export default function System({
     setActiveTab(tab);
   };
 
-  // Determine the plan icon state based on message status
+  console.log("text", message.text)
+
+
   const getPlanIconState = () => {
     if (isError) return "error";
     if (isComplete) return "completed";
     if (requiresUserInput) return "waiting";
-    if (isParallelWorkflow) {
-      if (workflowInfo?.status === 'completed') return "completed";
-      if (workflowInfo?.status === 'running') return "running";
-    }
     return "running";
   };
-
-  // Get workflow progress for parallel workflows
-  const getWorkflowProgress = () => {
-    if (!isParallelWorkflow || !workflowInfo) return null;
-    
-    const completedTasks = workflowInfo.completedTasks || 0;
-    const totalTasks = workflowInfo.totalTasks || 0;
-    const percentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-    
-    return { completedTasks, totalTasks, percentage };
-  };
-
-  const progress = getWorkflowProgress();
 
   return ( 
     <div className="mt-4 px-2">
@@ -87,9 +70,10 @@ export default function System({
         <div className="">
           <Construction activeTab={activeTab} tasks={message.tasks} />
           
-          {/* Message text with optional parallel workflow progress */}
+          {/* Back to simple text display */}
           <div className="mt-3">
-            <p className="text-sm text-[#a4a4a8] font-[500]">{message.text}</p>
+            {/* <p className="text-sm text-[#a4a4a8] font-[500]">{message.text}</p> */}
+            <ParseText text={message.text} />
           </div>
         </div>
       )}

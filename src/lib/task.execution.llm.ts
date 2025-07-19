@@ -7,6 +7,8 @@ export async function synthesizeResults(originalQuery: string, results: (string 
 You are Runtime-Agent. Combine the answers of each sub-query into a single,
 well-structured response for the original question.
 
+And please use markdown to format the response.
+
 Original question: "${originalQuery}"
 
 Sub-Query Answers:

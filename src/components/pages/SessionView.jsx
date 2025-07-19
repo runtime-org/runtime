@@ -286,7 +286,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
         dependencies,
         browserInstance,
         onDone: (text) => addNewMessage({ type:'system', text }),
-        onError: (err) => addNewMessage({ type:'system', text: err, isError:true })
+        onError: (err) => addNewMessage({ type:'system', text: err, isError: true })
       })
     } catch (error) {
       addNewMessage({ type:'system', text: error.message, isError:true });
@@ -326,8 +326,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
             : <System key={m.id}  message={m}
                       isError={m.isError}
                       isComplete={m.isComplete}
-                      isParallelWorkflow={m.isParallelWorkflow}
-                      workflowInfo={m.workflowInfo} />
+              />
         )}
         {isProcessing && (
           <div className="flex items-center space-x-2 text-sm text-gray-500">
