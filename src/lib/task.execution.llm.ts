@@ -15,7 +15,8 @@ ${results
   .join("\n")}
 
 Return one synthesize_results tool call.
-Please format your response using markdown. Whenever possible, present information in bullet points for clarity and readability.
+
+Important: Please format your response using markdown. Whenever possible, present information in bullet points for clarity and readability.
 `;
 
   const synthResp = await callLLM({

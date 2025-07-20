@@ -19,33 +19,6 @@ export function emit(event: string, payload: any) {
 }
 
 /*
-** ensure thinking is in the plans array
-*/
-export function ensureThinking(sysMsg: any, isProcessing: boolean) {
-    if (!sysMsg?.tasks?.length) return sysMsg;
-
-    const task = sysMsg.tasks[sysMsg.tasks.length - 1];
-    const hasThinking = task.plans.some(p => p.action === "thinking");
-
-    if (isProcessing && !hasThinking) {
-        task.plans.push({
-          id        : uuidv4(),
-          action    : "thinking",
-          title     : "Runtime is working…",
-          status    : "running",
-          timestamp : new Date().toISOString()
-        });
-    }
-
-    if (!isProcessing && hasThinking) {
-        task.plans = task.plans.filter(p => p.action !== "thinking");
-    }
-
-    return sysMsg;
-}
-
-
-/*
 ** push simplified page context to history
 ** if the action is not get_simplified_page_context, push the semantic explanation of the call
 ** if the action is get_simplified_page_context, push the 60 element of the raw results

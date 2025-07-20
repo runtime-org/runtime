@@ -2,10 +2,12 @@ import { callLLM } from "./llm.engine";
 import { QueryAnalysisDeclaration } from "./tools";
 import { getFnCall } from "./task.execution.helpers";
 import { QUERY_FEW_SHOT } from "./query.fewshot";
+import { SplitQueryResponse } from "./query.schemas";
 
-export async function splitQuery(query: string) {
+export async function splitQuery({query, history}: {query: string, history: any[]}): Promise<SplitQueryResponse> {
     const analysisDate = new Date().toISOString().split('T')[0];
     const prompt = `
+${history ? `### CONVERSATION HISTORY\n${history}` : ''}
 User-Query: "${query}"
 
 Goal: Always use the tool 'analyze_query_strategy' to break the query into
@@ -14,6 +16,8 @@ SEQUENTIAL sub-queries. Independent information-gathering steps must be placed
 
 ### ADDITIONAL GUIDANCE
 - Produce the MINIMAL number of sub-queries needed.
+- Take the conversation history into account; avoid re-asking for facts that 
+  already appear there, and resolve pronouns/ellipsis using it.
 - Specify "dependencies" so each later query lists the indices it relies on.
   If a step is logically independent but you still want strict execution
   order, list the index of the previous step in "depends_on".
@@ -48,7 +52,7 @@ Date: ${analysisDate}
     ** get function call
     */
     const call = getFnCall(response);
-    if (!call) return [query];
+    if (!call) return { queries: [query], dependencies: [] };
 
     const resp = {
         queries: call?.args?.queries ?? [query],
