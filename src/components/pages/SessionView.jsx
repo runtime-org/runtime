@@ -11,7 +11,11 @@ import System from '../ui/System';
 import { useAppState }  from '../../hooks/useAppState';
 
 import { splitQuery } from '../../lib/query.llm';
-import { buildHistoryDigest } from '../../lib/query.helpers';
+import { 
+  buildHistoryDigest, 
+  addPlanToTask, 
+  updatePlanInTask 
+} from '../../lib/query.helpers';
 import { runWorkflow } from '../../lib/workflow.runner';
 import { taskEventEmitter } from '../../lib/emitters';
 
@@ -87,26 +91,6 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
     return idx;
   }
 
-  /*
-  ** add and update plan to task
-  */
-  function addPlanToTask({tasks, taskId, newPlan}) {
-    return tasks.map(t => 
-      t.taskId === taskId ? { ...t, plans: [...t.plans, newPlan] } : t
-    )
-  }
-  function updatePlanInTask({tasks, taskId, actionId, status, error}) {
-    return tasks.map(t => 
-      t.taskId === taskId 
-        ? {
-            ...t,
-            plans: t.plans.map(p => 
-              p.id === actionId ? { ...p, status, error } : p
-            )
-          }
-        : t
-    )
-  }
   /*
   * handle workflow updates (create, update, complete "plan" of sub tasks)
   */

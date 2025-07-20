@@ -21,3 +21,24 @@ export function buildHistoryDigest(msgs: any[]) {
   }
   return pairs.join('\n\n');
 }
+
+/*
+** add and update plan to task
+*/
+export function addPlanToTask({tasks, taskId, newPlan}) {
+    return tasks.map(t => 
+        t.taskId === taskId ? { ...t, plans: [...t.plans, newPlan] } : t
+    )
+}
+export function updatePlanInTask({tasks, taskId, actionId, status, error}) {
+    return tasks.map(t => 
+        t.taskId === taskId 
+        ? {
+            ...t,
+            plans: t.plans.map(p => 
+                p.id === actionId ? { ...p, status, error } : p
+            )
+            }
+        : t
+    )
+}
