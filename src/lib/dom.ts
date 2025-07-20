@@ -273,33 +273,42 @@ export class DomService {
         const element = elementMap[index];
         const xpath = element.xpath;
         
-        const result = await this.page.evaluate((xpath, elementInfo) => {
-            const element = document.evaluate(
-                xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null
-            ).singleNodeValue;
-            
-            if (!element) {
-                throw new Error('Element not found by XPath');
-            }
+        const clickAndNav = Promise.allSettled([
+            this.page.waitForNavigation({
+                waitUntil: 'domcontentloaded',
+                timeout: 10000
+            }),
+            this.page.evaluate((xp) => {
+                const element = document.evaluate(
+                    xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null
+                ).singleNodeValue as HTMLElement | null;
+                
+                if (!element) {
+                    throw new Error('Element not found by XPath');
+                }
 
-            // scroll into view if needed
-            (element as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-            
-            // check if it's a file input
-            if ((element as HTMLInputElement).type === 'file') {
-                return { isFileInput: true, message: 'File input detected - use upload_file action instead' };
-            }
+                (element as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                
+                if ((element as HTMLInputElement).type === 'file') {
+                    return { isFileInput: true, message: 'File input detected - use upload_file' };
+                }
 
-            // click the element
-            (element as HTMLElement).click();
-            
-            return { 
-                success: true, 
-                message: `Clicked element ${elementInfo.index}: ${elementInfo.tagName}${elementInfo.text ? ' - ' + elementInfo.text.substring(0, 50) : ''}` 
-            };
-        }, xpath, element);
+                (element as HTMLElement).click();
+                return { clicked: true };
+            }, xpath)
+        ]);
 
-        return result;
+        const [navRes, clickRes] = await clickAndNav;
+
+        if ((clickRes as PromiseFulfilledResult<any>).value?.isFileInput) {
+            return { isFileInput: true, message: 'File input detected - use upload_file action instead' };
+        }
+
+        if (navRes.status === 'rejected') {
+            return { success: true, message: `Clicked element ${index} (no nav)` };
+        }
+
+        return { success: true, message: `Clicked element ${index} and navigated` };
     }
 
     // get accessibility tree snapshot
@@ -330,6 +339,15 @@ export class DomService {
 
     async getVisibleText(selector = 'body') {
         try {
+            const ok = await this.waitUntilBodyNotBlank(10000);
+            if (!ok) {
+                return { success: false, error: 'page did not load any visible text in 10 s', data: null };
+            }
+        } catch (err) {
+            // pass and continue
+        }
+
+        try {
             const raw = await this.page.$eval(selector, (el: Element) => (el as HTMLElement).innerText);
         
             return raw
@@ -340,4 +358,17 @@ export class DomService {
             return `Error fetching visible text: ${err.message}`;
         }
     }
+
+    async waitUntilBodyNotBlank(maxMs = 10000, poll = 250): Promise<boolean> {
+        const start = Date.now();
+        while (Date.now() - start < maxMs) {
+          const hasText = await this.page.evaluate(() =>
+            !!document.body && document.body.innerText.trim().length > 0
+          );
+          if (hasText) return true;
+          await new Promise(r => setTimeout(r, poll));
+        }
+        return false;
+      }
+      
 }
