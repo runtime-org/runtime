@@ -157,17 +157,13 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 });
                 
                 console.log("📥 Puppeteer result (attempt 1):", pptrRes);
-
-                if (pptrRes.data?.visibleText) {
-                    console.log("📄 Visible text from page: ", pptrRes.data.visibleText);
-                }
                 
                 if (!pptrRes.success) {
                     /*
                     ** retry once after a delay (2s)
                     */
-                    console.log(`🔄 Retrying action after 2s delay...`);
-                    await new Promise(r => setTimeout(r, 2000));
+                    console.log(`🔄 Retrying action after 700ms delay...`);
+                    await new Promise(r => setTimeout(r, 700));
                     pptrRes = await handlePuppeteerAction({
                         actionDetails: { 
                             action: toolCall.name, 
