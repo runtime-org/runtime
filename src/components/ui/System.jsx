@@ -26,9 +26,6 @@ export default function System({
     setActiveTab(tab);
   };
 
-  console.log("text", message.text)
-
-
   const getPlanIconState = () => {
     if (isError) return "error";
     if (isComplete) return "completed";

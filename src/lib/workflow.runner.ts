@@ -13,6 +13,7 @@ export async function runWorkflow(opts: RunnerOptions) {
     queries, 
     dependencies,
     browserInstance,
+    researchFlags
   } = opts;
 
   const pageManager = createPagePool({ browser: browserInstance });
@@ -39,6 +40,7 @@ export async function runWorkflow(opts: RunnerOptions) {
       sessionId,
       pageManager,
       dependencies,
+      researchFlags,
       browserInstance
     });
 

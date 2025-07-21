@@ -5,6 +5,8 @@ import { SeqRunOptions } from "./task.execution.schemas";
 import { 
     emit, 
     pushHistory,
+    researchHelper,
+    visitAndSummarizeUrl
 } from "./task.execution.helpers";
 import { synthesizeResults } from "./task.execution.llm";
 import { 
@@ -23,33 +25,90 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         pageManager,
         originalQuery, 
         browserInstance, 
+        researchFlags = [],
         model = 'gemini-2.5-flash'
     } = opts;
 
-    console.log("🚀 DEBUG: Starting sequential task execution");
-    console.log("📋 Task ID:", taskId);
-    console.log("🎯 Original Query:", originalQuery);
-    console.log("📝 Sub-queries:", queries);
-    console.log("🔗 Dependencies:", dependencies);
-    console.log("🤖 Model:", model);
+    console.log("🔗 Research Flags:", researchFlags);
+
 
     /*
     ** shared memory across queries tasks
     */
     const results: (string | undefined)[] = Array(queries.length).fill(undefined);
+    const visitedUrls = new Set<string>();
 
     /*
     ** iterate through SQ1, SQ2, ... SQn
     */
     for (let qIdx = 0; qIdx < queries.length; qIdx++) {
         const subQuery = queries[qIdx];
-        console.log(`\n🔄 === PROCESSING SQ${qIdx} ===`);
-        console.log(`📋 Sub-Query: ${subQuery}`);
-        console.log(`💾 Current Results State:`, results.map((r, i) => `SQ${i}: ${r ? r.substring(0, 100) + '...' : '<pending>'}`));
+        const needsResearch = researchFlags[qIdx];
+        console.log(`🔍 SQ${qIdx} needs research: ${needsResearch}`);
+
+        /*
+        ** if the SQ needs research, we need to run the research process and skip the deterministic plan
+        */
+        if (needsResearch) {
+            console.log("🔎 SQ", qIdx, "→ research mode");
+
+            const currentPage = await pageManager();
+
+            /*
+            ** Google search
+            */
+            await handlePuppeteerAction({
+                actionDetails : {
+                  action    : "go_to_url",
+                  parameters: { url: `https://www.google.com/search?q=${encodeURIComponent(subQuery)}` },
+                  taskId    : `sq${qIdx}-research`
+                },
+                currentPage,
+                browserInstance
+            });
+            // await currentPage.waitForNavigation({ waitUntil: "networkidle0" });
+
+            /*
+            ** get the links
+            */
+            const { links } = await researchHelper({
+                subQuery,
+                browserInstance,
+                currentPage,
+                history: [],
+                taskId
+            })
+            // console.log("🔍 Links:", links);
+
+            /*
+            ** visit each link and summarize
+            */
+            const summaries: string[] = [];
+            for (const { href } of links) {
+                if (!href || visitedUrls.has(href)) continue;
+                const { summary } = await visitAndSummarizeUrl({
+                    subQuery,
+                    href,
+                    browserInstance,
+                    currentPage,
+                    history: [],
+                    visitedUrls,
+                    taskId
+                });
+                // console.log("🔍 Summary:", summary);
+                summaries.push(summary);
+            }
+
+            /*
+            ** store the summaries and jump to the next SQ
+            */
+            results[qIdx] = summaries.join("\n\n") || "(no usefull information found)";
+            continue; // jump
+        }
         
-        let feedback   = "";
-        let attempts   = 0;
-        let planDone   = false;
+        let feedback = "";
+        let attempts = 0;
+        let planDone = false;
 
         /*
         ** build a deterministic plan -> steps 
@@ -62,11 +121,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 console.log(`📢 Feedback from previous attempt: ${feedback}`);
             }
 
-            console.log(`📤 Calling planGenerator with:`);
-            console.log(`   - subQuery: ${subQuery}`);
-            console.log(`   - feedback: ${feedback}`);
-            console.log(`   - results so far:`, results);
-
             const steps = await planGenerator({
                 subQuery,
                 queries,
@@ -74,13 +128,9 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 results,
                 feedback
             });
-
-            console.log(`📥 Generated plan steps:`, steps);
         
             if (!steps.length) {
-                console.log(`❌ Empty plan generated for SQ${qIdx}`);
                 opts.onError?.(`Empty plan for SQ${qIdx}`);
-                console.log(`SQ${qIdx} failed: empty plan`);
                 continue;
             }
 
@@ -91,25 +141,17 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             const currentPage = await pageManager();
             let finalAnswer   = "";
 
-            console.log(`🚀 Executing ${steps.length} steps for SQ${qIdx}`);
-
             /* 
             ** run steps
             */
             for (let s = 0; s < steps.length; s++) {
                 const sentence = steps[s];
-                console.log("\n📝 Step", s+1, "/", steps.length, ":", sentence);
-                console.log("📚 Current history length:", history.length);
                 console.log("📚 History context:", history);
 
-                console.log(`📤 Calling stepTranslator with step: "${sentence}"`);
                 const toolCall = await stepTranslator(sentence, history);
-                console.log(`📥 stepTranslator returned:`, toolCall);
 
                 if (!toolCall) {
-                    console.log(`❌ Translator failed at step ${s} of SQ${qIdx}`);
                     opts.onError?.(`Translator failed at step ${s} of SQ${qIdx}`);
-                    console.log(`SQ${qIdx} failed: translator failed at step ${s}`);
                     continue;
                 }
 
@@ -118,7 +160,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 */
                 if (toolCall.name === "done") {
                     finalAnswer = toolCall.args?.text ?? "";
-                    console.log("✅ SQ", qIdx, "marked as done with answer:", finalAnswer);
                     results[qIdx] = finalAnswer;
                     planDone = true;
                     emit("task_action_complete", {
@@ -126,17 +167,26 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                         action : "done",
                         status : "success",
                         speakToUser: finalAnswer,
-                        error  : null,
+                        error : null,
                         actionId: uuidv4()
                     });
                     break;
+                }
+
+                /*
+                ** dedup protection
+                */
+                if (toolCall.name === "go_to_url") {
+                    const destUrl = toolCall.args?.url;
+                    if (visitedUrls.has(destUrl)) {
+                        continue;
+                    }
                 }
 
                 /* 
                 ** run Puppeteer action with one retry
                 */
                 const actionId = uuidv4();
-                console.log("🎬 Executing Puppeteer action: ", toolCall.name, "with params:", toolCall.args);
                 
                 emit("task_action_start", { 
                     taskId, 
@@ -156,13 +206,10 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                     browserInstance
                 });
                 
-                console.log("📥 Puppeteer result (attempt 1):", pptrRes);
-                
                 if (!pptrRes.success) {
                     /*
                     ** retry once after a delay (2s)
                     */
-                    console.log(`🔄 Retrying action after 700ms delay...`);
                     await new Promise(r => setTimeout(r, 700));
                     pptrRes = await handlePuppeteerAction({
                         actionDetails: { 
@@ -173,26 +220,19 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                         currentPage,
                         browserInstance
                     });
-                    console.log("📥 Puppeteer result (attempt 2):", {
-                        success: pptrRes.success,
-                        error: pptrRes.error,
-                        dataSize: pptrRes.data ? Object.keys(pptrRes.data).length : 0,
-                        visibleTextLength: pptrRes.data?.visibleText ? pptrRes.data.visibleText.length : 0
-                    });
                 }
 
                 /*
-                ** of the current tool called is get_visible_text, 
-                ** then immediately summarize the text, before storing it in history
+                ** if the tool is get_visible_text, we need to summarize the text
                 */
                 if (toolCall.name === "get_visible_text") {
-                    const summary = await summarizeText({
-                        rawText: pptrRes.data?.visibleText as string,
+                    const { summary } = await summarizeText({
+                        rawText: (pptrRes.data as any).visibleText,
                         query: subQuery
                     });
-                    console.log("📄 Summary of the visible text:", summary);
-                    pptrRes.data.summary = summary;
+                    (pptrRes.data as any).summary = summary;
                 }
+
 
                 emit("task_action_complete", {
                     taskId,
@@ -207,11 +247,11 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 ** in case of pptr failure, do not emit error, retry again the task
                 */
                 if (!pptrRes.success) {
-                    console.log(`❌ SQ${qIdx} failed: ${pptrRes.error}`);
                     finalAnswer = "failed execution, retry again";
                 } 
 
-                /* store visible text if this step might answer the SQ directly */
+                /* 
+                ** store visible text if this step might answer the SQ directly */
                 // if (pptrRes.data?.visibleText && !finalAnswer)
                 //    finalAnswer = pptrRes.data.visibleText.slice(0, 10048);
                 // }
@@ -220,22 +260,14 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 ** push action generated and the result to history
                 */
                 pushHistory(history, toolCall.name, toolCall.args, pptrRes.data);
-                console.log(`📚 Updated history length: ${history.length}`);
             
                 /*
                 ** cap to 20 messages
                 */
                 if (history.length > 20) {
-                    console.log(`✂️ Trimming history from ${history.length} to 20 messages`);
                     history = history.slice(-20);
                 }
             }
-
-            console.log(`\n🔍 Evaluating completeness of SQ${qIdx}`);
-            console.log(`📤 Sending to evalEngine:`);
-            console.log(`   - originalQuery: ${originalQuery}`);
-            console.log(`   - subQuery: ${subQuery}`);
-            console.log(`   - answer: ${finalAnswer}`);
 
             /*
             ** evaluate completeness of the current plan
@@ -250,11 +282,9 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             
             if (evalRes.complete) {
                 results[qIdx] = finalAnswer;
-                planDone      = true;
-                console.log(`✅ SQ${qIdx} marked as complete with result: ${finalAnswer}`);
+                planDone  = true;
             } else {
                 feedback = evalRes.feedback || "(answer incomplete)";
-                console.log(`SQ${qIdx} failed: ${feedback}`);
                 //   emit("task_action_complete", {
                 //     taskId,
                 //     action : "evaluation",
@@ -263,7 +293,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 //     error  : feedback,
                 //     actionId: uuidv4()
                 //   });
-                console.log(`🔄 SQ${qIdx} needs retry. Feedback: ${feedback}`);
             }
         }
 
@@ -271,20 +300,10 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         ** if the plan is not done or error, avoid retruning an error
         */
         if (!planDone) {
-            console.log(`❌ SQ${qIdx} failed after 5 retries`);
             results[qIdx] = "failed execution, retry again";
             planDone = true;
         }
     }
-
-    console.log("\n🏁 All sub-queries completed");
-    console.log("📊 Final results:", results);
-    
-    console.log("\n🔄 Synthesizing final result...");
-    console.log("📤 Sending to synthesizeResults:");
-    console.log(`   - originalQuery: ${originalQuery}`);
-    console.log(`   - results:`, results);
-    console.log(`   - model: ${model}`);
 
     const finalResult = await synthesizeResults(originalQuery, results, model);
     console.log("📥 Final synthesized result:", finalResult);

@@ -1,3 +1,5 @@
+import { Browser, Page } from 'puppeteer-core/lib/esm/puppeteer/puppeteer-core-browser.js';
+
 export interface RunOptions {
     originalQuery: string;
     queries: string[];
@@ -24,4 +26,30 @@ export interface SeqRunOptions extends RunOptions {
         query_index: number;
         depends_on: number[];
     }[];
+    researchFlags: boolean[];
+}
+
+/*
+** research helper
+*/
+export interface ResearchHelperOptions {
+    subQuery: string;
+    maxLinks?: number;
+    browserInstance: Browser;
+    currentPage: Page;
+    history: any[];
+    taskId: string;
+}
+
+/*
+** visit and summarize url options
+*/
+export interface VisitAndSummarizeUrlOptions {
+    href: string;
+    subQuery: string;
+    browserInstance: Browser;
+    currentPage: Page;
+    history: any[];
+    visitedUrls: Set<string>;
+    taskId: string;
 }

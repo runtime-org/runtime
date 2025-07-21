@@ -16,9 +16,14 @@ ${results
 
 Return one synthesize_results tool call.
 
-Important: Please format your response using markdown. Whenever possible, present information in bullet points for clarity and readability.
+Important:
+- Please format your response using proper English and markdown.
+- Whenever possible, use bullet points to enhance clarity and readability.
+- Limit each paragraph to a maximum of 2 to 3 sentences.
+- Do not mention any tools if the user's question is unrelated to them.
 `;
 
+  console.log("synthesisPrompt", synthesisPrompt);
   const synthResp = await callLLM({
     modelId: model,
     contents: [{ role: "user", parts: [{ text: synthesisPrompt }] }],

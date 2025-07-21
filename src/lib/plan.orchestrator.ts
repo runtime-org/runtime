@@ -1,7 +1,11 @@
 import { callLLM } from "./llm.engine";
-import { getFnCall } from "./task.execution.helpers";
+import { getFnCall, truncate } from "./task.execution.helpers";
 import { PLAN_FEW_SHOT, EVAL_FEW_SHOT } from "./plan.fewshot";
-import { PlanDeclaration, EvaluateAnswerTool, SummaryDeclaration } from "./plan.tools";
+import { 
+    PlanDeclaration, 
+    EvaluateAnswerTool, 
+    SummaryDeclaration, 
+} from "./plan.tools";
 import { ActionDeclarations } from "./tools";
 import { 
     PlanOrchestratorOptions, 
@@ -167,10 +171,15 @@ Respond ONLY with an evaluate_answer function call.
 /*
 ** summarize a raw text from webpage into a concise summary
 */
-export async function summarizeText({rawText, query}: {rawText: string, query?: string}): Promise<string> {
+export async function summarizeText({
+    rawText, 
+    query, 
+}: {rawText: string, query?: string}): Promise<{summary: string}> {
+    const prompt = `Raw visible text: ${truncate(rawText, 2000000)}\nSub-query: ${query}`;
+    console.log("+++ prompt:", prompt);
     const summaryCall = await callLLM({
         modelId: "gemini-2.5-flash",
-        contents: [{ role: "user", parts: [ { text: `Raw visible text: ${rawText}\nSub-query: ${query}` } ] }],
+        contents: [{ role: "user", parts: [ { text: prompt } ] }],
         config: {
             temperature: 0.0,
             maxOutputTokens: 1024,
@@ -179,8 +188,14 @@ export async function summarizeText({rawText, query}: {rawText: string, query?: 
         },
         ignoreFnCallCheck: true
     });
-    console.log("response:", summaryCall);
 
     const fn = getFnCall(summaryCall);
-    return fn?.args?.summary ?? rawText;
+    console.log("+++ fn:", fn);
+    return {
+        summary: fn?.args?.summary ?? rawText,
+    }
 }
+
+/*
+** research continuation
+*/

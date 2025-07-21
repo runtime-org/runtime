@@ -52,11 +52,12 @@ Date: ${analysisDate}
     ** get function call
     */
     const call = getFnCall(response);
-    if (!call) return { queries: [query], dependencies: [] };
+    if (!call) return { queries: [query], dependencies: [], researchFlags: [] };
 
     const resp = {
         queries: call?.args?.queries ?? [query],
         dependencies: call?.args?.dependencies ?? [],
+        researchFlags: call?.args?.researchFlags ?? []
     }
     return resp;
 }

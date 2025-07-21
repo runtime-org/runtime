@@ -127,7 +127,11 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
         }
     
         clone[sysIndex] = sysMsg;
-        addMessageToSession(activeSessionId, sysMsg);
+
+        setTimeout(() => {
+          addMessageToSession(activeSessionId, sysMsg);
+        }, 10);
+
         return clone;
       })
     }
@@ -153,7 +157,9 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
         sysMsg.tasks = addPlanToTask({tasks: sysMsg.tasks, taskId, newPlan: newPlanStep});
 
         clone[sysIndex] = sysMsg;
-        addMessageToSession(activeSessionId, sysMsg, true);
+        setTimeout(() => {
+          addMessageToSession(activeSessionId, sysMsg, true);
+        }, 10);
         return clone;
       });
     };
@@ -169,7 +175,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
         const sysMsg = { ...clone[sysIndex] };
 
         const finalStatus = status === 'success' ? 'completed' : 'error';
-        console.log('finalStatus', finalStatus);
+        
         sysMsg.tasks = updatePlanInTask({
           tasks: sysMsg.tasks,
           taskId,
@@ -179,7 +185,9 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
         });
 
         clone[sysIndex] = sysMsg;
-        addMessageToSession(activeSessionId, sysMsg, true);
+        setTimeout(() => {
+          addMessageToSession(activeSessionId, sysMsg, true);
+        }, 10);
         return clone;
       });
     };
@@ -209,7 +217,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
       */
       const historyDigest = buildHistoryDigest(messages);
       const resp  = await splitQuery({query: rawText, history: historyDigest});
-      const { queries, dependencies } = resp;
+      const { queries, dependencies, researchFlags } = resp;
 
       /*
       * run the workflow
@@ -219,6 +227,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
         sessionId: activeSessionId,
         queries,
         dependencies,
+        researchFlags,
         browserInstance,
         onDone: (text) => addNewMessage({ type:'system', text }),
         onError: (err) => addNewMessage({ type:'system', text: err, isError: true })

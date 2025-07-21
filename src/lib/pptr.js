@@ -25,7 +25,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
 
             // ===== NAVIGATION =====
             case "search_google": {
-                const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(parameters.query)}&udm=14`;
+                const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(parameters.query)}`;
                 await pageInstance.goto(searchUrl, { waitUntil: 'networkidle0', timeout: 60000 });
                 result = { success: true, data: { searchQuery: parameters.query, navigatedTo: searchUrl } };
                 if (logged) console.log(`🔍 Searched for "${parameters.query}" in Google`);
@@ -33,7 +33,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
             }
 
             case "go_to_url": {
-                await pageInstance.goto(parameters.url, { waitUntil: 'networkidle0', timeout: 60000 });
+                await pageInstance.goto(parameters.url, { waitUntil: 'networkidle0' });
                 result = { success: true, data: { navigatedTo: parameters.url } };
                 if (logged) console.log(`🔗 Navigated to ${parameters.url}`);
                 break;
