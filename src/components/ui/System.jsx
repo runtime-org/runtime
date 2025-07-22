@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 
 import Construction from './Construction';
 import ParseText from './ParseText';
+import ActionIcons from './ActionIcons';
 
 System.propTypes = {
   message: PropTypes.object.isRequired,
@@ -68,9 +69,12 @@ export default function System({
           <Construction activeTab={activeTab} tasks={message.tasks} />
           
           {/* Back to simple text display */}
-          <div className="mt-3">
+          <div className="mt-3 relative">
             {/* <p className="text-sm text-[#a4a4a8] font-[500]">{message.text}</p> */}
             <ParseText text={message.text} />
+            
+            {/* Action icons */}
+            <ActionIcons text={message.text} />
           </div>
         </div>
       )}

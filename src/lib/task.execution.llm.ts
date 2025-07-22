@@ -20,7 +20,8 @@ Important:
 - Please format your response using proper English and markdown.
 - Whenever possible, use bullet points to enhance clarity and readability.
 - Limit each paragraph to a maximum of 2 to 3 sentences.
-- Do not mention any tools if the user's question is unrelated to them.
+- Do not mention any tools unless they are directly relevant to the user's question.
+- If there is missing information or a knowledge gap, provide the best possible answer based on the available information.
 `;
 
   console.log("synthesisPrompt", synthesisPrompt);
