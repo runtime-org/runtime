@@ -12,6 +12,7 @@ use commands::{
     disconnect_from_browser,
     validate_connection,
     validate_ws_endpoint,
+    download_and_extract_resource
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -24,7 +25,8 @@ pub fn run() {
             launch_browser,
             disconnect_from_browser,
             validate_connection,
-            validate_ws_endpoint
+            validate_ws_endpoint,
+            download_and_extract_resource
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

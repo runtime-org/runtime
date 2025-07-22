@@ -1,4 +1,5 @@
 import { Page } from "puppeteer-core/lib/esm/puppeteer/puppeteer-core-browser.js";
+import { detectPdf } from "./dom.utils";
 
 export class DomService {
     private page: Page;
@@ -339,50 +340,36 @@ export class DomService {
 
     async getVisibleText(selector = 'body') {
         try {
-            const ok = await this.waitUntilBodyNotBlank(10000);
+            const ok = await this.waitUntilBodyNotBlank(7_000);
             if (!ok) {
                 return { 
                     success: false, 
-                    error: 'page did not load any visible text in 10 s', 
+                    error: 'page did not load any visible text in 7 s', 
                     data: null 
                 };
             }
         } catch (err) { }
 
-        const pdf = await this.detectPdf();
-        if (pdf) {
-            return pdf;
-        }
-
-        try {
-            const raw = await this.page.$eval(selector, (el: Element) => (el as HTMLElement).innerText);
-        
-            return raw
-            .replace(/\s+\n/g, '\n')    // trailing spaces at line ends
-            .replace(/\n{3,}/g, '\n\n') // >2 consecutive blank lines → 1 blank line
-            .trim();
-        } catch (err) {
+        const pdfText = await detectPdf(this.page, this.page.url());
+        if (pdfText) {
+            return pdfText;
         }
 
         /*
-        ** fall back control A, C, control
+        ** regular dom text
         */
         try {
-            await this.page.keyboard.down("Control");
-            await this.page.keyboard.press("KeyA");
-            await this.page.keyboard.press("KeyC");
-            await this.page.keyboard.up("Control");
-
-            const clipText = await this.page.evaluate(
-            () => navigator.clipboard.readText()
-            );
-            if (clipText.trim().length > 0) {
-                return clipText;
-            }
-        } catch (error) {
-            
+            const raw = await this.page.$eval(
+                selector, 
+                (el: Element) => (el as HTMLElement).innerText);
+        
+            return raw
+            .replace(/\s+\n/g, '\n')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+        } catch (_) {
+            return null;
         }
-        return null;
     }
 
     async waitUntilBodyNotBlank(maxMs = 10000, poll = 250): Promise<boolean> {
@@ -395,33 +382,6 @@ export class DomService {
           await new Promise(r => setTimeout(r, poll));
         }
         return false;
-    }
-
-    async detectPdf() {
-        const url = this.page.url();
-        const looksLikePdf  = /\.pdf(\?|$)/i.test(url);
-        const contentIsPdf  = await this.page.evaluate(
-            () => document.contentType === "application/pdf"
-        );
-
-        if (looksLikePdf || contentIsPdf) {
-            /* 
-            ** try to read the Chrome viewer's text layer 
-            */
-            try {
-              await this.page.waitForSelector("#viewer .textLayer", { timeout: 5_000 });
-              const pdfDomText = await this.page.evaluate(() =>
-                Array.from(document.querySelectorAll("#viewer .textLayer"))
-                  .map(l => (l as HTMLElement).innerText)
-                  .join("\n")
-              );
-              if (pdfDomText.trim().length > 50) {
-                return pdfDomText;
-              }
-            } catch {  }
-        }
-
-        return null;
     }
       
 }

@@ -306,6 +306,28 @@ export const QueryAnalysisDeclaration = [
   }
 ];
 
+export const RouterQueryDeclaration = [
+  {
+    name: 'router_query',
+    description: `Classify the user query's intent.  
+ • small_talk - casual greeting / chit-chat.  
+ • web_research - needs browsing, clicking links, summarising pages, or any
+                      other interaction with the browser.`,
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        intent: {
+          type: Type.STRING,
+          description: 'Detected intent',
+          enum: ['small_talk', 'web_research']
+        }
+      },
+      required: ['intent']
+    }
+  }
+];
+
+
 
 export const AvailableActions = [
   "done",

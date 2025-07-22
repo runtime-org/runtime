@@ -1,12 +1,9 @@
-use tauri::{AppHandle, Emitter};
+// use tauri::{AppHandle, Emitter};
 
 use crate::sketchs::{
-    BrowserConfig,
-    UserQuery,
-    LLMActionResponse,
-    PuppeteerExecutionResult
+    BrowserConfig
 };
-use crate::config::BACKEND_BASE_URL;
+// use crate::config::BACKEND_BASE_URL;
 use crate::platform::detect_browsers;
 use crate::network::{
     find_free_port, 
@@ -19,6 +16,12 @@ use crate::browser_manager::{
     launch_new_instance,
     sunset_browser_instance
 };
+use crate::utils::download_and_extract;
+
+#[tauri::command]
+pub async fn download_and_extract_resource(url: String) -> Result<String, String> {
+    download_and_extract(url).await
+}
 
 #[tauri::command]
 pub async fn fetch_available_browsers() -> Result<Vec<BrowserConfig>, String> {
@@ -88,7 +91,7 @@ pub async fn disconnect_from_browser() -> Result<(), String> {
 #[tauri::command]
 pub async fn validate_ws_endpoint(ws_endpoint: String, selected_browser_path: String) -> Result<String, String> {
     println!("validating saved endpoint: {}", ws_endpoint);
-    
+
     let port = extract_port_from_ws_url(&ws_endpoint)?;
     
     match get_browser_info(&port).await {
@@ -117,3 +120,4 @@ pub async fn validate_ws_endpoint(ws_endpoint: String, selected_browser_path: St
         }
     }
 }
+
