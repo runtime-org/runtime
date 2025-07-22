@@ -29,9 +29,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         model = 'gemini-2.5-flash'
     } = opts;
 
-    console.log("🔗 Research Flags:", researchFlags);
-
-
     /*
     ** shared memory across queries tasks
     */
@@ -41,6 +38,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
     /*
     ** iterate through SQ1, SQ2, ... SQn
     */
+    const currentPage = await pageManager();
     for (let qIdx = 0; qIdx < queries.length; qIdx++) {
         const subQuery = queries[qIdx];
         const needsResearch = researchFlags[qIdx];
@@ -52,10 +50,8 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         if (needsResearch) {
             console.log("🔎 SQ", qIdx, "→ research mode");
 
-            const currentPage = await pageManager();
-
             /*
-            ** Google search
+            ** Ggoogle search
             */
             await handlePuppeteerAction({
                 actionDetails : {
@@ -78,7 +74,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 history: [],
                 taskId
             })
-            // console.log("🔍 Links:", links);
 
             /*
             ** visit each link and summarize
@@ -95,7 +90,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                     visitedUrls,
                     taskId
                 });
-                // console.log("🔍 Summary:", summary);
                 summaries.push(summary);
             }
 
@@ -103,7 +97,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             ** store the summaries and jump to the next SQ
             */
             results[qIdx] = summaries.join("\n\n") || "(no usefull information found)";
-            continue; // jump
+            continue; // jump into the next SQi
         }
         
         let feedback = "";
@@ -113,13 +107,9 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         /*
         ** build a deterministic plan -> steps 
         */
+
         while (!planDone && attempts < 5) {
             attempts++;
-            console.log(`\n🎯 Attempt ${attempts}/5 for SQ${qIdx}`);
-            
-            if (feedback) {
-                console.log(`📢 Feedback from previous attempt: ${feedback}`);
-            }
 
             const steps = await planGenerator({
                 subQuery,
@@ -138,7 +128,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             ** conversation context for stepTranslator
             */
             let history: any[] = [];
-            const currentPage = await pageManager();
+            
             let finalAnswer   = "";
 
             /* 
@@ -146,7 +136,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             */
             for (let s = 0; s < steps.length; s++) {
                 const sentence = steps[s];
-                console.log("📚 History context:", history);
+                // console.log("📚 History context:", history);
 
                 const toolCall = await stepTranslator(sentence, history);
 
@@ -248,13 +238,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 */
                 if (!pptrRes.success) {
                     finalAnswer = "failed execution, retry again";
-                } 
-
-                /* 
-                ** store visible text if this step might answer the SQ directly */
-                // if (pptrRes.data?.visibleText && !finalAnswer)
-                //    finalAnswer = pptrRes.data.visibleText.slice(0, 10048);
-                // }
+                }
 
                 /* 
                 ** push action generated and the result to history
@@ -278,21 +262,11 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 answer: finalAnswer
             });
             
-            console.log(`📥 Evaluation result:`, evalRes);
-            
             if (evalRes.complete) {
                 results[qIdx] = finalAnswer;
                 planDone  = true;
             } else {
                 feedback = evalRes.feedback || "(answer incomplete)";
-                //   emit("task_action_complete", {
-                //     taskId,
-                //     action : "evaluation",
-                //     status : "error",
-                //     speakToUser: `Retrying SQ${qIdx}: ${feedback}`,
-                //     error  : feedback,
-                //     actionId: uuidv4()
-                //   });
             }
         }
 
@@ -306,7 +280,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
     }
 
     const finalResult = await synthesizeResults(originalQuery, results, model);
-    console.log("📥 Final synthesized result:", finalResult);
 
     /*
     ** emit completion
@@ -319,4 +292,5 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         error: null 
     });
     opts.onDone?.(finalResult);
+    await currentPage.close();
 }

@@ -76,7 +76,6 @@ Plan for sub-query (index ${queries.indexOf(subQuery)}):
 
 Return ONLY a generate_action_plan tool call with the "steps" array.
     `;
-    console.log("prompt", prompt);
 
     if (feedback) prompt += `\nEvaluator Feedback: ${feedback}\n`;
 
@@ -176,7 +175,7 @@ export async function summarizeText({
     query, 
 }: {rawText: string, query?: string}): Promise<{summary: string}> {
     const prompt = `Raw visible text: ${truncate(rawText, 2000000)}\nSub-query: ${query}`;
-    console.log("+++ prompt:", prompt);
+    
     const summaryCall = await callLLM({
         modelId: "gemini-2.5-flash",
         contents: [{ role: "user", parts: [ { text: prompt } ] }],
@@ -190,12 +189,7 @@ export async function summarizeText({
     });
 
     const fn = getFnCall(summaryCall);
-    console.log("+++ fn:", fn);
     return {
         summary: fn?.args?.summary ?? rawText,
     }
 }
-
-/*
-** research continuation
-*/

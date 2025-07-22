@@ -35,8 +35,9 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
   } = useAppState();
 
   const activeSession   = sessions.find(s => s.id === activeSessionId);
-  const [messages, setMessages]     = useState([]);
-  const [isProcessing, setIsProcessing]     = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [historyReady, setHistoryReady] = useState(false);
 
   const messagesEndRef  = useRef(null);
 
@@ -59,8 +60,16 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
   * load the session history on mount / switch
   */
   useEffect(() => {
-    if (!activeSessionId) return setMessages([]);
-    setMessages(getSessionMessages(activeSessionId) ?? []);
+    if (!activeSessionId) {
+      setMessages([]);
+      setHistoryReady(false);
+      return;
+    }
+
+    const stored = getSessionMessages(activeSessionId) ?? [];
+    setMessages(stored);
+    setHistoryReady(true);
+
   }, [activeSessionId]);
 
   /*
@@ -120,18 +129,15 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
           };
 
           sysMsg.tasks = addPlanToTask({tasks: sysMsg.tasks, taskId, newPlan: firstPlan});
+          setTimeout(() => addMessageToSession(activeSessionId, sysMsg), 10);
         } else if (status === 'completed') {
           sysMsg = {
             ...sysMsg, status: 'complete', text: speakToUser,
           };
+          setTimeout(() => addMessageToSession(activeSessionId, sysMsg, true), 10);
         }
     
         clone[sysIndex] = sysMsg;
-
-        setTimeout(() => {
-          addMessageToSession(activeSessionId, sysMsg);
-        }, 10);
-
         return clone;
       })
     }
@@ -175,7 +181,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
         const sysMsg = { ...clone[sysIndex] };
 
         const finalStatus = status === 'success' ? 'completed' : 'error';
-        
+
         sysMsg.tasks = updatePlanInTask({
           tasks: sysMsg.tasks,
           taskId,
@@ -215,7 +221,9 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
       /* 
       * analyze and split the query into sub queries if necessary
       */
-      const historyDigest = buildHistoryDigest(messages);
+      const fullHistory = getSessionMessages(activeSessionId) ?? [];
+      const historyDigest = buildHistoryDigest(fullHistory);
+      console.log("🔍 historyDigest", historyDigest);
       const resp  = await splitQuery({query: rawText, history: historyDigest});
       const { queries, dependencies, researchFlags } = resp;
 
@@ -284,9 +292,13 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
       {/* input */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-2 pt-0 bg-[#242424]">
         <PromptInput
-          placeholder={isProcessing ? 'Runtime is working…' : 'Send a message to Runtime…'}
+          placeholder={
+            !historyReady ? "Loading history…" :
+            isProcessing ? "Runtime is working…" :
+            "Send a message to Runtime…"
+          }
           onSubmit={handleSubmit}
-          disabled={isProcessing}
+          disabled={isProcessing || !historyReady}
         />
       </div>
     </div>

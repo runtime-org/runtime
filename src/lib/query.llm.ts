@@ -16,6 +16,7 @@ SEQUENTIAL sub-queries. Independent information-gathering steps must be placed
 
 ### ADDITIONAL GUIDANCE
 - Produce the MINIMAL number of sub-queries needed.
+- Please use as you can keywords, avoid long sub-queries.
 - Take the conversation history into account; avoid re-asking for facts that 
   already appear there, and resolve pronouns/ellipsis using it.
 - Specify "dependencies" so each later query lists the indices it relies on.
@@ -36,7 +37,7 @@ Date: ${analysisDate}
         temperature: 0.0,
         maxOutputTokens: 2048,
         mode: 'ANY',
-        tools: [{ functionDeclarations: [QueryAnalysisDeclaration] }]
+        tools: [{ functionDeclarations: QueryAnalysisDeclaration }]
     }
     /*
     ** call LLM

@@ -15,6 +15,7 @@ export interface RunOptions {
     model?: string;
     onDone?: (text: any) => void;
     onError?: (error: any) => void;
+    onClose?: () => void;
 }
 
 /*

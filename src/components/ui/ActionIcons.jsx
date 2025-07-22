@@ -53,7 +53,7 @@ export default function ActionIcons({
         >
           <TbThumbUp 
             size={16} 
-            className="text-[#a4a4a8] hover:text-[#a4a4a8] transition-colors duration-200" 
+            className="text-[#a4a4a8]/40 hover:text-[#a4a4a8] transition-colors duration-200" 
           />
         </button>
         {hoveredButton === 'helpful' && (
@@ -72,7 +72,7 @@ export default function ActionIcons({
         >
           <TbThumbDown 
             size={16} 
-            className="text-[#a4a4a8] hover:text-[#a4a4a8] transition-colors duration-200" 
+            className="text-[#a4a4a8]/40 hover:text-[#a4a4a8] transition-colors duration-200" 
           />
         </button>
         {hoveredButton === 'notHelpful' && (
@@ -91,7 +91,7 @@ export default function ActionIcons({
         >
           <TbCopy 
             size={16} 
-            className="text-[#a4a4a8] hover:text-[#a4a4a8] transition-colors duration-200" 
+            className="text-[#a4a4a8]/40 hover:text-[#a4a4a8] transition-colors duration-200" 
           />
         </button>
         {hoveredButton === 'copy' && (

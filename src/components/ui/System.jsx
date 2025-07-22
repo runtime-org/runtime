@@ -37,7 +37,7 @@ export default function System({
   return ( 
     <div className="mt-4 px-2">
       {/* Plan | Tabs */}
-      <div className="flex items-center border-[#484848]/50 h-10 gap-1 relative">
+      <div className="flex items-center border-[#484848]/50 h-10 gap-1 relative select-none">
         {/* Plan tab */}
         <div className="-ml-2">
           <TabOption

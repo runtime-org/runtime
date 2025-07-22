@@ -270,13 +270,13 @@ export const QueryAnalysisDeclaration = [
             description: 'One concrete, self-contained sub-query.'
           }
         },
-        researchFlags: {
+        research_flags: {
           type: Type.ARRAY,
-          description: `List the flags of sub-queries (e.g., [true, false, true]) that require open-web research. If a flag is not listed, it does not require research.
+          description: `List the indices of sub-queries (e.g., [0, 1, 3]) that require open-web research. If an index is not listed, it does not require research.
           In general, if the user requests information, open-web research should be performed.`,
           items: {
-            type: Type.BOOLEAN,
-            description: 'Flag of a sub-query that requires open-web research'
+            type: Type.NUMBER,
+            description: 'Index of a sub-query that requires open-web research'
           }
         },
         dependencies: {
