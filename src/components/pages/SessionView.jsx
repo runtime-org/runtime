@@ -10,7 +10,7 @@ import System from '../ui/System';
 
 import { useAppState }  from '../../hooks/useAppState';
 
-import { splitQuery, routeQuery } from '../../lib/query.llm';
+import { splitQuery } from '../../lib/query.llm';
 import { callLLM } from '../../lib/llm.engine';
 import { getFnCall } from '../../lib/task.execution.helpers';
 import { 
@@ -227,27 +227,6 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
       const historyDigest = buildHistoryDigest(fullHistory);
       console.log("historyDigest", historyDigest);
 
-      /*
-      ** quick intent routing
-      */
-      const intent = await routeQuery({query: rawText, history: historyDigest });
-      console.log("intent", intent);
-
-      if (intent === 'small_talk') {
-        const resp = await callLLM({
-          modelId: 'gemini-2.5-flash',
-          contents: [{ role: 'user', parts: [{ text: rawText }] }],
-          config: { temperature: 0.7, maxOutputTokens: 512 },
-          ignoreFnCallCheck: true
-        });
-        const text = resp?.candidates?.[0]?.content?.parts?.[0]?.text ?? "Opps, something went wrong";
-        addNewMessage({ type: 'system', text });
-        return; 
-      }
-
-      /*
-      ** in case of web research, split the query into sub queries
-      */
       const resp  = await splitQuery({query: rawText, history: historyDigest});
       const { queries, dependencies, researchFlags } = resp;
 

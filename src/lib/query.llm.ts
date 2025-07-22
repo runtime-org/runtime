@@ -1,8 +1,8 @@
 import { callLLM } from "./llm.engine";
-import { QueryAnalysisDeclaration, RouterQueryDeclaration } from "./tools";
+import { QueryAnalysisDeclaration } from "./tools";
 import { getFnCall } from "./task.execution.helpers";
 import { QUERY_FEW_SHOT } from "./query.fewshot";
-import { SplitQueryResponse, QueryIntent } from "./query.schemas";
+import { SplitQueryResponse } from "./query.schemas";
 
 
 export async function splitQuery({query, history}: {query: string, history: any[]}): Promise<SplitQueryResponse> {
@@ -62,39 +62,4 @@ Date: ${analysisDate}
         researchFlags: call?.args?.researchFlags ?? []
     }
     return resp;
-}
-
-/*
-** route query to the correct flow
-*/
-
-export async function routeQuery(opts: {
-  query: string;
-  history: string;
-  model?: string;
-}): Promise<QueryIntent> {
-  const { query, history, model = 'gemini-2.5-flash' } = opts;
-
-  const prompt = `
-${history ? `### HISTORY\n${history}` : ''}
-User-Query: "${query}"
-
-Decide intent:
-  • "small_talk" - casual greeting / chit-chat
-  • "web_research" - needs browsing (search, click, summarise, etc.)`;
-
-  const resp = await callLLM({
-    modelId: model,
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    config: {
-      temperature: 0,
-      maxOutputTokens: 2048,
-      mode: 'ANY',
-      tools: [{ functionDeclarations: RouterQueryDeclaration }]
-    },
-    ignoreFnCallCheck: true
-  });
-
-  const fn = getFnCall(resp);
-  return (fn?.args?.intent ?? "small_talk") as QueryIntent;
 }
