@@ -29,6 +29,8 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         model = 'gemini-2.5-flash'
     } = opts;
 
+    console.log("queries", queries);
+
     /*
     ** shared memory across queries tasks
     */
@@ -41,7 +43,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
     const currentPage = await pageManager();
     for (let qIdx = 0; qIdx < queries.length; qIdx++) {
         const subQuery = queries[qIdx];
-        const needsResearch = researchFlags[qIdx];
+        const needsResearch = researchFlags.includes(qIdx);
         console.log(`🔍 SQ${qIdx} needs research: ${needsResearch}`);
 
         /*
@@ -90,6 +92,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                     visitedUrls,
                     taskId
                 });
+                console.log("summary", summary);
                 summaries.push(summary);
             }
 
@@ -107,7 +110,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         /*
         ** build a deterministic plan -> steps 
         */
-
+        console.log("🔍 SQ", qIdx, subQuery);
         while (!planDone && attempts < 5) {
             attempts++;
 
@@ -221,8 +224,8 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                         query: subQuery
                     });
                     (pptrRes.data as any).summary = summary;
+                    console.log("summary", summary);
                 }
-
 
                 emit("task_action_complete", {
                     taskId,
@@ -279,8 +282,27 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         }
     }
 
+    /*
+    ** synthesize the results
+    */
+    const actionId = uuidv4();
+    emit("task_action_start", {
+        taskId,
+        action: "synthesize_results",
+        actionId,
+        speakToUser: "Reasoning about the results",
+        status: "running"
+    });
+
     const finalResult = await synthesizeResults(originalQuery, results, model);
 
+    emit("task_action_complete", {
+        taskId,
+        action: "synthesize_results",
+        speakToUser: "Reasoning about the results",
+        status: "success",
+        actionId
+    });
     /*
     ** emit completion
     */

@@ -4,8 +4,7 @@ import { callLLM } from "./llm.engine";
 
 export async function synthesizeResults(originalQuery: string, results: (string | undefined)[], model: string = 'gemini-2.5-flash') {
   const synthesisPrompt = `
-You are Runtime-Agent. Combine the answers of each sub-query into a single,
-well-structured response for the original question.
+You are Runtime-Agent. Combine the answers of each sub-query into a well-structured response for the original question.
 
 Original question: "${originalQuery}"
 
@@ -17,8 +16,8 @@ ${results
 Return one synthesize_results tool call.
 
 Important:
-- Please format your response using proper English and markdown.
-- Whenever possible, use bullet points to enhance clarity and readability.
+- Please format your response using proper English and markdown formatting (e.g. use '#' for headings, '**word**' for bold, ' *' for bullet points).
+- Always use bullet points to improve clarity and readability unless the answer is a single sentence.
 - Limit each paragraph to a maximum of 2 to 3 sentences.
 - Do not mention any tools unless they are directly relevant to the user's question.
 - If there is missing information or a knowledge gap, provide the best possible answer based on the available information.

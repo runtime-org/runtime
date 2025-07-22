@@ -1,29 +1,21 @@
 /*
-** history digest builder
-*/
-const MAX_HISTORY_PAIRS = 12;
-
-/*
 ** build a digest of the recent conversation
 */
+const MAX_HISTORY_PAIRS = 12;
 export function buildHistoryDigest(msgs: any[]): string {
-    console.log("🔍 msgs", msgs);
     const pairs: string[] = [];
     let pendingUser: string | null = null;
 
     for (const m of msgs) {
         if (m.type === 'user') {
-          pendingUser = m.text?.trim() ?? '';
+            pendingUser = m.text?.trim() ?? '';
         } else if ( m.type === 'system' && m.text?.trim() ) {
-          if (pendingUser) {
-            pairs.push(`User: ${pendingUser}\nAssistant: ${m.text.trim()}`);
-            pendingUser = null;
+            if (pendingUser) {
+                pairs.push(`User: ${pendingUser}\nAssistant: ${m.text.trim()}`);
+                pendingUser = null;
+            }
         }
     }
-}
-  
-
-  console.log("🔍 pairs", pairs);
 
   return pairs.slice(-MAX_HISTORY_PAIRS).join('\n\n');
 }

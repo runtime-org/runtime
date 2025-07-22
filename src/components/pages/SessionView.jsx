@@ -223,7 +223,6 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
       */
       const fullHistory = getSessionMessages(activeSessionId) ?? [];
       const historyDigest = buildHistoryDigest(fullHistory);
-      console.log("🔍 historyDigest", historyDigest);
       const resp  = await splitQuery({query: rawText, history: historyDigest});
       const { queries, dependencies, researchFlags } = resp;
 

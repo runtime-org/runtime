@@ -41,5 +41,5 @@ export interface RunnerOptions {
     depends_on: number[];
   }[];
   browserInstance: any;
-  researchFlags: boolean[];
+  researchFlags: number[];
 }

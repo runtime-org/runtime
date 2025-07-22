@@ -52,7 +52,7 @@ export default function ActionIcons({
           onMouseLeave={() => setHoveredButton(null)}
         >
           <TbThumbUp 
-            size={16} 
+            size={14} 
             className="text-[#a4a4a8]/40 hover:text-[#a4a4a8] transition-colors duration-200" 
           />
         </button>
@@ -71,7 +71,7 @@ export default function ActionIcons({
           onMouseLeave={() => setHoveredButton(null)}
         >
           <TbThumbDown 
-            size={16} 
+            size={14} 
             className="text-[#a4a4a8]/40 hover:text-[#a4a4a8] transition-colors duration-200" 
           />
         </button>
@@ -90,7 +90,7 @@ export default function ActionIcons({
           onMouseLeave={() => setHoveredButton(null)}
         >
           <TbCopy 
-            size={16} 
+            size={14} 
             className="text-[#a4a4a8]/40 hover:text-[#a4a4a8] transition-colors duration-200" 
           />
         </button>

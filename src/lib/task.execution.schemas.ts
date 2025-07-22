@@ -27,7 +27,7 @@ export interface SeqRunOptions extends RunOptions {
         query_index: number;
         depends_on: number[];
     }[];
-    researchFlags: boolean[];
+    researchFlags: number[];
 }
 
 /*

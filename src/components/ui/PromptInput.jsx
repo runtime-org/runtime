@@ -32,7 +32,7 @@ export default function PromptInput({ placeholder, onSubmit }) {
             <div className="flex items-center w-full rounded-[12px] bg-[#323232] gap-1 p-1 border border-[#484848]/70">
                 <textarea
                     ref={textareaRef}
-                    className="flex-grow resize-none bg-transparent rounded p-2 mt-1 text-sm no-scrollbar 
+                    className="flex-grow resize-none bg-transparent rounded p-2 text-base no-scrollbar 
                             focus:outline-none min-h-[40px] max-h-[100px]"
                     rows={1}
                     placeholder={placeholder}
