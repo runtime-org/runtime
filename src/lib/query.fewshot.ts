@@ -3,7 +3,7 @@ export const QUERY_FEW_SHOT = `
 Q: "When was the author of the book 'The Great Gatsby' born?"
 → tool(analyze_query_strategy,{
   "queries":[
-    "Who is the author of the book The Great Gatsby?",
+    "Author of the book The Great Gatsby",
     "When was the author of this book born?"
   ],
   "dependencies":[

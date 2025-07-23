@@ -57,5 +57,5 @@ export async function detectPdf(page: Page, url: string): Promise<string | null>
     }
   
     return null;
-  }
+}
   

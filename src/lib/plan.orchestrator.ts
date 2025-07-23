@@ -181,7 +181,7 @@ export async function summarizeText({
         contents: [{ role: "user", parts: [ { text: prompt } ] }],
         config: {
             temperature: 0.0,
-            maxOutputTokens: 1024,
+            maxOutputTokens: 10096,
             mode: "ANY",
             tools: [{ functionDeclarations: [SummaryDeclaration] }]
         },

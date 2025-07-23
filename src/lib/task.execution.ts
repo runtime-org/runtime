@@ -41,6 +41,12 @@ export async function runSequentialTask(opts: SeqRunOptions) {
     ** iterate through SQ1, SQ2, ... SQn
     */
     const currentPage = await pageManager();
+    await handlePuppeteerAction({
+        actionDetails:{ action:'show_mesh_overlay', parameters:{}, taskId:'ui_overlay' },
+        browserInstance, 
+        currentPage
+    });
+    
     for (let qIdx = 0; qIdx < queries.length; qIdx++) {
         const subQuery = queries[qIdx];
         const needsResearch = researchFlags.includes(qIdx);
@@ -314,5 +320,12 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         error: null 
     });
     opts.onDone?.(finalResult);
+
+    await handlePuppeteerAction({
+        actionDetails:{ action:'hide_mesh_overlay', parameters:{}, taskId:'ui_overlay' },
+        browserInstance, 
+        currentPage
+    });
+
     await currentPage.close();
 }

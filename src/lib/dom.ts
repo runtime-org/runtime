@@ -1,6 +1,10 @@
 import { Page } from "puppeteer-core/lib/esm/puppeteer/puppeteer-core-browser.js";
 import { detectPdf } from "./dom.utils";
 
+const MESH_ID   = '__rt_mesh_overlay__';
+const STYLE_ID  = '__rt_mesh_overlay_style__';
+const FLAG = '__rt_mesh_installed__' as const;;
+
 export class DomService {
     private page: Page;
 
@@ -383,5 +387,80 @@ export class DomService {
         }
         return false;
     }
+
+    installScript = `
+(() => {
+  if (window['${FLAG}']) return;
+  window['${FLAG}'] = true;
+
+  function init(){
+    if (!document.body) return;        // should never happen, but safe-guard
+    /* ---------- style block ---------- */
+    if (!document.getElementById('${STYLE_ID}')) {
+      const s = document.createElement('style');
+      s.id='${STYLE_ID}';
+      s.textContent = \`
+#${MESH_ID}{position:fixed;inset:0;pointer-events:none;z-index:999999;background:transparent}
+#${MESH_ID}::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient( 90deg,#1e90ff 0%,transparent 70%) top    /100% 16px,
+    linear-gradient(180deg,#1e90ff 0%,transparent 70%) right  /16px 100%,
+    linear-gradient(-90deg,#1e90ff 0%,transparent 70%) bottom /100% 16px,
+    linear-gradient(-180deg,#1e90ff 0%,transparent 70%) left  /16px 100%;
+  background-repeat:no-repeat;
+  filter:blur(8px);opacity:.75;
+  animation:rtMesh 3s linear infinite;
+}
+@keyframes rtMesh{
+  0%{transform:scale(1)}
+  50%{transform:scale(1.08)}
+  100%{transform:scale(1)}
+}\`;
+      document.head.appendChild(s);
+    }
+    /* ---------- mesh element ---------- */
+    if (!document.getElementById('${MESH_ID}')) {
+      const d = document.createElement('div');
+      d.id='${MESH_ID}';
+      document.body.appendChild(d);
+    }
+  } /* end init */
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init, { once:true });
+  } else {
+    init();
+  }
+})();`;
+
+
+    async showMeshOverlay(page: Page) {
+        await page.evaluateOnNewDocument(this.installScript);
+
+        /* 
+        ** also inject into the *current* document so the user sees it immediately 
+        */
+        await page.evaluate(this.installScript);
+    }
+      
+
+    async hideMeshOverlay(page: Page) {
+        /* 
+        ** remove element + style from the live document
+        */
+        await page.evaluate((meshId, styleId) => {
+          document.getElementById(meshId)?.remove();
+          document.getElementById(styleId)?.remove();
+        }, MESH_ID, STYLE_ID);
+      
+        /* 
+        ** remove the flag so future navigations don't recreate it
+        */
+        await page.evaluateOnNewDocument(`
+          delete window['${FLAG}'];
+        `);
+    }
+      
       
 }

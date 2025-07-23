@@ -16,14 +16,12 @@ SEQUENTIAL sub-queries. Independent information-gathering steps must be placed
 *earlier* in the list so later steps can reference their answers.
 
 ### ADDITIONAL GUIDANCE
-- Produce the MINIMAL number of sub-queries needed.
-- Please use as you can keywords, avoid long sub-queries.
-- Take the conversation history into account; avoid re-asking for facts that 
-  already appear there, and resolve pronouns/ellipsis using it.
-- Specify "dependencies" so each later query lists the indices it relies on.
-  If a step is logically independent but you still want strict execution
-  order, list the index of the previous step in "depends_on".
-- If a step is independent, list the index of the previous step in "depends_on".
+- Produce the minimal number of sub-queries necessary to answer the user's query.
+- Use concise keywords whenever possible; avoid long, verbose sub-query sentences or questions.
+- Take the conversation history into account: do not repeat questions for information already provided, and resolve pronouns or ellipses using the context. If the user requests information about multiple elements or entities, split the query into separate sub-queries for each entity, rather than searching for all at once.
+- Specify "dependencies" so that each subsequent sub-query lists the indices of the queries it depends on.
+  If a step is logically independent but you still want to enforce strict execution order, include the index of the previous step in "depends_on".
+- For independent steps, list the index of the previous step in "depends_on" to maintain order.
 
 ${QUERY_FEW_SHOT}
 
@@ -36,7 +34,7 @@ Date: ${analysisDate}
     */
     const config = {
         temperature: 0.0,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 10096,
         mode: 'ANY',
         tools: [{ functionDeclarations: QueryAnalysisDeclaration }]
     }
