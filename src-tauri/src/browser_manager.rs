@@ -184,19 +184,19 @@ pub async fn launch_new_instance(
             .arg("--disable-translate")
             .arg("--disable-ipc-flooding-protection");
 
-        // #[cfg(target_os = "windows")]
-        // command.arg("--user-data-dir=C:\\temp\\chrome-debug-profile");
-        // #[cfg(any(target_os = "macos", target_os = "linux"))]
-        // command.arg("--user-data-dir=/tmp/chrome-debug-profile");
+        #[cfg(target_os = "windows")]
+        command.arg("--user-data-dir=C:\\temp\\chrome-debug-profile");
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
+        command.arg("--user-data-dir=/tmp/chrome-debug-profile");
     } else if is_edge {
         command
             .arg("--disable-background-networking")
             .arg("--disable-default-apps");
 
-        // #[cfg(target_os = "windows")]
-        // command.arg("--user-data-dir=C:\\temp\\edge-debug-profile");
-        // #[cfg(any(target_os = "macos", target_os = "linux"))]
-        // command.arg("--user-data-dir=/tmp/edge-debug-profile");
+        #[cfg(target_os = "windows")]
+        command.arg("--user-data-dir=C:\\temp\\edge-debug-profile");
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
+        command.arg("--user-data-dir=/tmp/edge-debug-profile");
     }
 
     if is_dev {
