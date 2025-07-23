@@ -10,8 +10,11 @@ use commands::{
     fetch_available_browsers,
     launch_browser,
     disconnect_from_browser,
+    force_close_browser,
     validate_connection,
     validate_ws_endpoint,
+    scan_for_existing_browsers,
+    debug_browser_connection,
     download_and_extract_resource
 };
 
@@ -24,8 +27,11 @@ pub fn run() {
             fetch_available_browsers,
             launch_browser,
             disconnect_from_browser,
+            force_close_browser,
             validate_connection,
             validate_ws_endpoint,
+            scan_for_existing_browsers,
+            debug_browser_connection,
             download_and_extract_resource
         ])
         .run(tauri::generate_context!())
