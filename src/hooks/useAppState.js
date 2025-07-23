@@ -51,7 +51,9 @@ export const useAppState = create(
                     const currentMessages = state.sessionMessages[sessionId] || [];
                     
                     if (update) {
-                        // Replace existing message with same id
+                        /*
+                        ** replace existing message with same id
+                        */
                         const updatedMessages = currentMessages.map(m => 
                             m.id === message.id ? message : m
                         );
@@ -62,7 +64,9 @@ export const useAppState = create(
                             }
                         };
                     } else {
-                        // Add new message (prepend)
+                        /*
+                        ** add new message (prepend)
+                        */
                         return {
                             sessionMessages: {
                                 ...state.sessionMessages,
@@ -70,7 +74,7 @@ export const useAppState = create(
                             }
                         };
                     }
-                }),
+            }),
             fetchBrowsers: async (isBackgroundUpdate = false) => {
                 const now = Date.now();
                 if (isBackgroundUpdate && (now - get().lastBackgroundUpdateAttempt) < 10000) { return; }
@@ -112,7 +116,9 @@ export const useAppState = create(
             setSavedWsEndpoint: (endpoint) => set({savedWsEndpoint: endpoint}),
             clearSavedWsEndpoint: () => set({savedWsEndpoint: null}),
             
-            // Add these browser-related actions
+            /*
+            ** browser-related actions
+            */
             setBrowserInstance: (instance) => set({browserInstance: instance}),
             setPageInstance: (instance) => set({pageInstance: instance}),
             setIsConnected: (connected) => set({isConnected: connected}),

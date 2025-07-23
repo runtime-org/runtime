@@ -20,6 +20,11 @@
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
 }
+
+::selection {
+  background-color: #3b83f631;
+  color: #3b83f6;
+}
 /* keyframes */
 @keyframes colorCycle {
   0% { filter: drop-shadow(0 0 1.7em #24c8db); }

@@ -3,7 +3,7 @@ import React from 'react';
 export default function TabOption({ icon, label, onClick, isActive }) {
   return (
     <div 
-      className={`flex flex-col items-center gap-2 rounded-md px-2 py-1 hover:cursor-pointer relative ${isActive ? "" : "hover:bg-zinc-700/20"}`}
+      className={`flex flex-col items-center gap-2 rounded-md px-2 py-1 hover:cursor-pointer relative select-none ${isActive ? "" : "hover:bg-zinc-700/20"}`}
       onClick={onClick}
     >
       <div className="flex items-center gap-2">

@@ -15,6 +15,7 @@ use commands::{
     validate_ws_endpoint,
     scan_for_existing_browsers,
     debug_browser_connection,
+    download_and_extract_resource
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -31,6 +32,7 @@ pub fn run() {
             validate_ws_endpoint,
             scan_for_existing_browsers,
             debug_browser_connection,
+            download_and_extract_resource
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

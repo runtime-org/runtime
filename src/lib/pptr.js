@@ -25,7 +25,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
 
             // ===== NAVIGATION =====
             case "search_google": {
-                const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(parameters.query)}&udm=14`;
+                const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(parameters.query)}`;
                 await pageInstance.goto(searchUrl, { waitUntil: 'networkidle0', timeout: 60000 });
                 result = { success: true, data: { searchQuery: parameters.query, navigatedTo: searchUrl } };
                 if (logged) console.log(`🔍 Searched for "${parameters.query}" in Google`);
@@ -33,7 +33,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
             }
 
             case "go_to_url": {
-                await pageInstance.goto(parameters.url, { waitUntil: 'networkidle0', timeout: 60000 });
+                await pageInstance.goto(parameters.url, { waitUntil: 'networkidle0' });
                 result = { success: true, data: { navigatedTo: parameters.url } };
                 if (logged) console.log(`🔗 Navigated to ${parameters.url}`);
                 break;
@@ -309,49 +309,6 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 break;
             }
 
-            // ===== CONTENT EXTRACTION =====
-            case "extract_content": {
-                const extractedContent = await pageInstance.evaluate((goal, includeLinks) => {
-                    // Get page content
-                    const textContent = document.body.innerText || '';
-                    let links = [];
-                    
-                    if (includeLinks) {
-                        links = Array.from(document.querySelectorAll('a[href]')).map(a => ({
-                            text: a.innerText?.trim() || a.textContent?.trim(),
-                            href: a.href,
-                            title: a.title
-                        })).filter(link => link.text && link.href);
-                    }
-
-                    // Simple content extraction based on goal
-                    const goalLower = goal.toLowerCase();
-                    let relevantContent = textContent;
-                    
-                    // Try to find content related to the goal
-                    if (goalLower.includes('price') || goalLower.includes('cost')) {
-                        const priceRegex = /[$£€¥][\d,]+\.?\d*/g;
-                        const prices = textContent.match(priceRegex) || [];
-                        if (prices.length > 0) {
-                            relevantContent = `Found prices: ${prices.join(', ')}\n\n${textContent.substring(0, 2000)}`;
-                        }
-                    }
-
-                    return {
-                        goal,
-                        content: relevantContent.substring(0, 5000),
-                        links: links.slice(0, 20),
-                        extractedAt: new Date().toISOString(),
-                        url: window.location.href,
-                        title: document.title
-                    };
-                }, parameters.goal, parameters.include_links || false);
-
-                result = { success: true, data: extractedContent };
-                if (logged) console.log(`📄 Extracted content for: ${parameters.goal}`);
-                break;
-            }
-
             case "get_visible_text": {
                 const visibleText = await domService.getVisibleText();
                 result = { success: true, data: { visibleText } };
@@ -367,7 +324,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 try {
                     // apply highlights
                     browserState = await domService.getClickableElementsWithIndices({
-                        highlightElements: true,
+                        highlightElements: false,
                         maxElements: parameters.max_elements || 50,
                         focusElement: parameters.focus_element_for_screenshot
                     });
@@ -473,6 +430,18 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
             default:
                 result = { success: false, error: `Unsupported action: ${action}`, data: null };
                 break;
+
+            // ===== OVERLAY =====
+            case 'show_mesh_overlay': {
+                await domService.showMeshOverlay(pageInstance);
+                result = { success:true, data:null };
+                break;
+            }
+            case 'hide_mesh_overlay': {
+                await domService.hideMeshOverlay(pageInstance);
+                result = { success:true, data:null };
+                break;
+            }
         }
 
     } catch (error) {

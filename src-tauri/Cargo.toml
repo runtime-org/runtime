@@ -6,7 +6,7 @@ authors = ["bayangp0@gmail.com"]
 edition = "2021"
 
 [lib]
-# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+# This seems to be only an issue on Windows,see https://github.com/rust-lang/cargo/issues/8519
 name = "runtime_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 

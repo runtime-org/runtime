@@ -1,4 +1,6 @@
-use crate::sketchs::BrowserConfig;
+use crate::sketchs::{
+    BrowserConfig
+};
 use crate::platform::detect_browsers;
 use crate::network::{
     create_new_page, 
@@ -222,3 +224,4 @@ pub async fn debug_browser_connection(browser_path: String) -> Result<String, St
     
     Ok(debug_info.join("\n"))
 }
+

@@ -270,6 +270,15 @@ export const QueryAnalysisDeclaration = [
             description: 'One concrete, self-contained sub-query.'
           }
         },
+        researchFlags: {
+          type: Type.ARRAY,
+          description: `List the indices of sub-queries (e.g., [0, 1, 3]) that require open-web research. If an index is not listed, it does not require research.
+          In general, if the user requests information, open-web research should be performed.`,
+          items: {
+            type: Type.NUMBER,
+            description: 'Index of a sub-query that requires open-web research'
+          }
+        },
         dependencies: {
           type: Type.ARRAY,
           description: 'For every sub-query that relies on previous answers, specify its index and the indexes it depends on.',
@@ -292,7 +301,7 @@ export const QueryAnalysisDeclaration = [
           }
         }
       },
-      required: ['queries', 'dependencies']
+      required: ['queries', 'dependencies', 'researchFlags']
     }
   }
 ];
