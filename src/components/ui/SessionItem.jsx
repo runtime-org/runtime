@@ -13,6 +13,9 @@ export default function SessionItem({ session }) {
     const handleClick = () => {
         openSession(session.id);
     };
+    const truncate = (text, maxLength) => {
+        return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
+    }
     
     return (
         <div 
@@ -20,7 +23,7 @@ export default function SessionItem({ session }) {
             onClick={handleClick}
         >
             <div className="flex flex-col text-[#9E9E9E]">
-                <h3 className="text-lg font-semibold group-hover:text-white/90 transition-colors duration-200">{session.title}</h3>
+                <h3 className="text-lg font-semibold group-hover:text-white/90 transition-colors duration-200">{truncate(session.title, 35)}</h3>
                 <p className="text-xs text-[#9E9E9E]">{formatDateString(session.createdAt)}</p>
             </div>
         </div>
