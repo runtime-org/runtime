@@ -87,11 +87,10 @@ export default function HomeView(props) {
     }
     
     const handleSubmit = async (text) => {
-        const newSession = await createSession(text); // fastapi /plan 
+        const newSession = await createSession(text); // fastapi /plan
         addSession(newSession);
         setActiveSessionId(newSession.id);
         openSession(newSession.id);
-
     }
 
     return (

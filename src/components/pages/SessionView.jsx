@@ -1,4 +1,3 @@
-// src/components/views/SessionView.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,8 +10,6 @@ import System from '../ui/System';
 import { useAppState }  from '../../hooks/useAppState';
 
 import { splitQuery } from '../../lib/query.llm';
-import { callLLM } from '../../lib/llm.engine';
-import { getFnCall } from '../../lib/task.execution.helpers';
 import { 
   buildHistoryDigest, 
   addPlanToTask, 
@@ -59,7 +56,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
 
 
   /*
-  * load the session history on mount / switch
+  ** load the session history on mount, and take the current query
   */
   useEffect(() => {
     if (!activeSessionId) {
@@ -73,6 +70,28 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
     setHistoryReady(true);
 
   }, [activeSessionId]);
+
+
+  /*
+  ** handle new query
+  */
+  useEffect(() => {
+    if (
+      activeSessionId &&
+      messages.length === 0 &&
+      activeSession.title 
+    ) {
+      /*
+      ** save the message
+      */
+      addNewMessage({ type: 'user', text: activeSession.title });
+
+      /*
+      ** execute the query
+      */
+      executeQuery(activeSession.title);
+    }
+  }, [activeSessionId, messages.length, activeSession.title]);
 
   /*
   ** ensure sys message is the right one for taskId
