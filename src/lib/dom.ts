@@ -409,7 +409,7 @@ export class DomService {
     linear-gradient(-90deg,#1e90ff 0%,transparent 70%) bottom /100% 16px,
     linear-gradient(-180deg,#1e90ff 0%,transparent 70%) left  /16px 100%;
   background-repeat:no-repeat;
-  filter:blur(8px);opacity:.75;
+  filter:blur(8px);opacity:.75; 
   animation:rtMesh 3s linear infinite;
 }
 @keyframes rtMesh{
