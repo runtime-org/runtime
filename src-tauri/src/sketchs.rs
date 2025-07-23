@@ -4,9 +4,9 @@ use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BrowserConfig {
-    pub id: String,
+    pub id: String, // chrome, edge for now.
     pub name: String,
-    pub path: String
+    pub path: String 
 }
 
 #[derive(Debug)]
