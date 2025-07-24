@@ -36,7 +36,7 @@ export function truncate(str: string, maxLength: number) {
 export async function researchHelper(opts: ResearchHelperOptions): Promise<{links: { index: number, href: string }[]}> {
     const {
         subQuery,
-        maxLinks = 10,
+        maxLinks = 8,
         browserInstance,
         currentPage,
         history,

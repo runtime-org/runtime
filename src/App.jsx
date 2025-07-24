@@ -99,8 +99,9 @@ function App() {
     }
   }, [selectedBrowserPath, savedWsEndpoint]);
 
-  const handleLaunchAndConnect = async () => {
-    if (!selectedBrowserPath) {
+  const handleLaunchAndConnect = async (browserPathParam) => {
+    const browserPath = browserPathParam || selectedBrowserPath;
+    if (!browserPath) {
       console.log("no browser selected");
       return;
     }
@@ -108,7 +109,7 @@ function App() {
     // first forward
     try {
       console.log("launching browser...");
-      const wsEndpoint = await invoke("launch_browser", { browserPath: selectedBrowserPath });
+      const wsEndpoint = await invoke("launch_browser", { browserPath });
       console.log("connecting to", wsEndpoint);
       
       setSavedWsEndpoint(wsEndpoint);
@@ -116,7 +117,7 @@ function App() {
       try {
         const validationResult = await invoke("validate_connection", { 
           wsEndpoint, 
-          selectedBrowserPath 
+          selectedBrowserPath: browserPath
         });
         addLog("Rust: " + validationResult, "success");
         setIsConnected(true);

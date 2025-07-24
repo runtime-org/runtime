@@ -37,6 +37,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
   const [messages, setMessages] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [historyReady, setHistoryReady] = useState(false);
+  const [isMessagesReady, setIsMessagesReady] = useState(false);
 
   const messagesEndRef  = useRef(null);
 
@@ -62,13 +63,14 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
     if (!activeSessionId) {
       setMessages([]);
       setHistoryReady(false);
+      setIsMessagesReady(false);
       return;
     }
 
     const stored = getSessionMessages(activeSessionId) ?? [];
     setMessages(stored);
     setHistoryReady(true);
-
+    setIsMessagesReady(true);
   }, [activeSessionId]);
 
 
@@ -76,6 +78,8 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
   ** handle new query
   */
   useEffect(() => {
+    if (!isMessagesReady) return;
+
     if (
       activeSessionId &&
       messages.length === 0 &&
@@ -91,7 +95,7 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
       */
       executeQuery(activeSession.title);
     }
-  }, [activeSessionId, messages.length, activeSession.title]);
+  }, [activeSessionId, messages.length, activeSession.title, isMessagesReady]);
 
   /*
   ** ensure sys message is the right one for taskId
