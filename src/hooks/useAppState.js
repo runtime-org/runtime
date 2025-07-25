@@ -10,42 +10,35 @@ export const useAppState = create(
             sessions: [],      // [{id, title, lastUpdated, createdAt, isActive, ...}]
             sessionMessages: {}, // {sessionId: [messages]}
             activeSessionId: null, // UUID or null
-            currrentQuery: "",
+            currentQuery: "",
             availableBrowsers: [], // [{id, name, path}]
-            selectedBrowserPath: null,
-            savedWsEndpoint: null, // currentws endpoint
-            isLoadingBrowsers: false,
-            errorLoadingBrowsers: null,
-            lastBackgroundUpdateAttempt: 0,
+
+            currentBrowserPath: null,
+            browserPool: {}, // {[path]: wsEndpoint}
+
             browserInstance: null,
             pageInstance: null,
-            logs: [],
             isConnected: false,
 
             // actions
             setActiveSessionId: (id) => set({activeSessionId: id}),
-            setCurrentQuery: (query) => set({currrentQuery: query}),
+            /*
+            ** query handling
+            */
+            setCurrentQuery: (query) => set({currentQuery: query}),
+            /*
+            ** view handling
+            */
             openHome: () => set({view: "home", activeSessionId: null}),
             openHistory: () => set({view: "history"}),
             openSession: (id) => set({view: "session", activeSessionId: id}),
             openProfile: () => set({view: "profile"}),
-            totalSessions: () => get().sessions.length,
-            addSession: session => 
-                set(state => ({sessions: [session, ...state.sessions]})),
-            removeSession: (id) =>
-                set(state => ({
-                    sessions: state.sessions.filter(session => session?.id !== id),
-                    sessionMessages: {...state.sessionMessages, [id]: undefined}
-                })),
+            /*
+            ** session handling
+            */
+            addSession: session =>  set(state => ({sessions: [session, ...state.sessions]})),
             clearSessions: () => set({ sessions: [], sessionMessages: {} }),
             getSessionMessages: (sessionId) => get().sessionMessages[sessionId] || [],
-            saveSessionMessages: (sessionId, messages) => 
-                set(state => ({
-                    sessionMessages: {
-                        ...state.sessionMessages,
-                        [sessionId]: messages
-                    }
-                })),
             addMessageToSession: (sessionId, message, update = false) =>
                 set(state => {
                     const currentMessages = state.sessionMessages[sessionId] || [];
@@ -75,46 +68,23 @@ export const useAppState = create(
                         };
                     }
             }),
-            fetchBrowsers: async (isBackgroundUpdate = false) => {
-                const now = Date.now();
-                if (isBackgroundUpdate && (now - get().lastBackgroundUpdateAttempt) < 10000) { return; }
-
-                if (!isBackgroundUpdate) {
-                    set({isLoadingBrowsers: true, errorLoadingBrowsers: null});
-                } else {
-                    set({lastBackgroundUpdateAttempt: now});
-                }
-
-                try {
-                    const browsers = await invoke("fetch_available_browsers");
-                    set({
-                        availableBrowsers: browsers,
-                        isLoadingBrowsers: false,
-                        errorLoadingBrowsers: null
-                    });
-
-                    const currentSelectedPath = get().selectedBrowserPath;
-                    const selectedStillExists = browsers.some(b => b.path === currentSelectedPath)
-
-                    if (browsers.length > 0 && (!currentSelectedPath || !selectedStillExists)) {
-                        set({ selectedBrowserPath: browsers[0].path });
-                    } else if (browsers.length === 0) {
-                        set({ selectedBrowserPath: null}); // no browser found
-                    }
-                } catch (error) {
-                    const errorMessage = error.message || (typeof error === 'string' ? error : "Failed to fetch browsers")
-                    console.error("Failed to fetch browsers:", errorMessage);
-                    if (!isBackgroundUpdate) {
-                        set({errorLoadingBrowsers: errorMessage, isLoadingBrowsers: false});
-                    } else {
-                        console.warn("Background browser fetch failed:", errorMessage);
-                    }
-                }
+            setCurrentBrowserPath: (path) => set({currentBrowserPath: path}),
+            /*
+            ** add/update one entry
+            */
+            rememberBrowser: (path, ws) => {
+                set(s => ({ browserPool: {...s.browserPool, [path]: ws}}))
             },
-
-            setSelectedBrowserPath: (path) => set({selectedBrowserPath: path}),
-            setSavedWsEndpoint: (endpoint) => set({savedWsEndpoint: endpoint}),
-            clearSavedWsEndpoint: () => set({savedWsEndpoint: null}),
+            /*
+            ** drop one entry (only when it is actively closed)
+            */
+            forgetBrowser: (path) => {
+                set(s => { 
+                    const pool = {...s.browserPool};
+                    delete pool[path];
+                    return { browserPool: pool }
+                })
+            },
             
             /*
             ** browser-related actions
@@ -122,20 +92,25 @@ export const useAppState = create(
             setBrowserInstance: (instance) => set({browserInstance: instance}),
             setPageInstance: (instance) => set({pageInstance: instance}),
             setIsConnected: (connected) => set({isConnected: connected}),
-            addLog: (message, type = "info") => 
-                set(state => ({
-                    logs: [`[${new Date().toLocaleTimeString()}] [${type.toUpperCase()}] ${message}`, ...state.logs.slice(0, 29)]
-                })),
-            clearLogs: () => set({logs: []}),
+            loadAvailableBrowsers: async () => {
+                try {
+                    const browsers = await invoke("fetch_available_browsers");
+                    set({availableBrowsers: browsers});
+                } catch (error) {
+                    console.error("Failed to load available browsers:", error);
+                    set({availableBrowsers: []});
+                }
+            }
         }),
         {
             name: "app-sessions",
             storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({ 
                 sessions: state.sessions,
-                selectedBrowserPath: state.selectedBrowserPath,
+                currentBrowserPath: state.currentBrowserPath,
                 sessionMessages: state.sessionMessages,
-                savedWsEndpoint: state.savedWsEndpoint
+                browserPool: state.browserPool,
+                isConnected: state.isConnected,
             }),
         }
     )

@@ -11,9 +11,9 @@ import SettingView from "../pages/SettingView";
 import PropTypes from "prop-types";
 
 HomeView.propTypes = {
+    currentBrowserPath: PropTypes.string.isRequired,
     isConnected: PropTypes.bool.isRequired,
     onLaunchAndConnect: PropTypes.func.isRequired,
-    onCloseBrowser: PropTypes.func.isRequired,
 }
 
 export default function HomeView(props) {
@@ -25,9 +25,9 @@ export default function HomeView(props) {
     } = useAppState();
 
     const {
+        currentBrowserPath,
         isConnected,
         onLaunchAndConnect,
-        onCloseBrowser,
     } = props;
     
     const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -37,13 +37,11 @@ export default function HomeView(props) {
     // placeholder username
     const username = "User";
 
-    // Improved click outside detection
+    // click outside detection
     useEffect(() => {
         function handleClickOutside(event) {
-            // Only run this if the menu is actually open
             if (!showSettingsMenu) return;
             
-            // Check if click is outside both menu and button
             if (
                 settingsMenuRef.current && 
                 !settingsMenuRef.current.contains(event.target) &&
@@ -53,17 +51,12 @@ export default function HomeView(props) {
             }
         }
         
-        // Use mousedown for more responsive clicking
         document.addEventListener("mousedown", handleClickOutside);
         
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, [showSettingsMenu]);
-
-    const handleProfileClick = () => {
-        setShowSettingsMenu(prev => !prev);
-    };
     
     // profile button
     const profileButton = {
@@ -72,7 +65,7 @@ export default function HomeView(props) {
             username,
             ref: profileIconRef 
         },
-        onClick: handleProfileClick
+        onClick: () => setShowSettingsMenu(prev => !prev)
     };
     
     const createSession = async (text) => {
@@ -104,9 +97,9 @@ export default function HomeView(props) {
             <div className="absolute top-12 left-0 right-0 flex flex-col w-full items-center justify-center">
                 <div className="flex items-center pl-3.5 w-full h-12">
                     <BrowserSelection 
+                        currentBrowserPath={currentBrowserPath}
                         isConnected={isConnected} 
                         onLaunchAndConnect={onLaunchAndConnect}
-                        onCloseBrowser={onCloseBrowser}
                     />
                 </div>
             </div>

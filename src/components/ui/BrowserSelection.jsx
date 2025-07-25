@@ -6,49 +6,50 @@ import { browserIcons } from "../../lib/utils";
 
 BrowserSelection.propTypes = {
   onLaunchAndConnect: PropTypes.func.isRequired,
-  onCloseBrowser: PropTypes.func.isRequired,
   isConnected: PropTypes.bool.isRequired,
 };
 
 export default function BrowserSelection({
   isConnected,
   onLaunchAndConnect,
-  onCloseBrowser,
 }) {
   /*
   ** global state
   */
   const {
     availableBrowsers,
-    selectedBrowserPath,
-    setSelectedBrowserPath,
+    currentBrowserPath,
+    setCurrentBrowserPath,
+    loadAvailableBrowsers,
   } = useAppState();
 
   /*
-  ** keep selection valid when list refreshes
+  ** fetch once on mount
+  */
+  useEffect(() => {
+    if (availableBrowsers.length === 0) {
+      loadAvailableBrowsers();
+    }
+  }, [availableBrowsers.length, loadAvailableBrowsers]);
+
+  /*
+  ** keep selection valid
   */
   useEffect(() => {
     if (
       availableBrowsers.length &&
       !availableBrowsers.some(
-        (b) => b.path === selectedBrowserPath)
+        (b) => b.path === currentBrowserPath)
     ) {
-      setSelectedBrowserPath(availableBrowsers[0].path);
+      setCurrentBrowserPath(availableBrowsers[0].path);
     }
-  }, [availableBrowsers, selectedBrowserPath, setSelectedBrowserPath]);
+  }, [availableBrowsers, currentBrowserPath]);
 
   /*
   ** click handler
   */
   const pickBrowser = async (browser) => {
-    if (browser.path === selectedBrowserPath && isConnected) return;
-
-    if (isConnected) {
-      await onCloseBrowser(true);
-    }
-
-    setSelectedBrowserPath(browser.path);
-
+    setCurrentBrowserPath(browser.path);
     await onLaunchAndConnect(browser.path);
   };
 
@@ -69,7 +70,7 @@ export default function BrowserSelection({
   return (
     <div className="flex gap-2 px-2 py-2 bg-[#303030] rounded-md border border-[#494949]/60 select-none mt-2">
       {availableBrowsers.map((b) => {
-        const isSel = b.path === selectedBrowserPath;
+        const isSel = b.path === currentBrowserPath;
         return (
           <button
             key={b.path}
@@ -83,7 +84,10 @@ export default function BrowserSelection({
             <img
               src={browserIcons[b.id] || browserIcons.default}
               alt={b.name}
-              className="w-6 h-6"
+              className={clsx(
+                "w-6 h-6",
+                !isConnected && isSel && "animate-spin"
+              )}
             />
             {isSel && (
               <span
