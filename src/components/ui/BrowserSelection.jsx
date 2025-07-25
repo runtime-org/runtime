@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import clsx from "clsx";
 import { useAppState } from "../../hooks/useAppState";
@@ -16,6 +16,7 @@ export default function BrowserSelection({
   /*
   ** global state
   */
+  const [isBrowserLaunching, setIsBrowserLaunching] = useState(false);
   const {
     availableBrowsers,
     currentBrowserPath,
@@ -46,10 +47,20 @@ export default function BrowserSelection({
   }, [availableBrowsers, currentBrowserPath]);
 
   /*
+  ** watch whenever the browser is connected, then 
+  */
+  useEffect(() => {
+    if (isConnected) {
+      setIsBrowserLaunching(false);
+    }
+  }, [isConnected]);
+
+  /*
   ** click handler
   */
   const pickBrowser = async (browser) => {
     setCurrentBrowserPath(browser.path);
+    setIsBrowserLaunching(true);
     await onLaunchAndConnect(browser.path);
   };
 
@@ -71,6 +82,8 @@ export default function BrowserSelection({
     <div className="flex gap-2 px-2 py-2 bg-[#303030] rounded-md border border-[#494949]/60 select-none mt-2">
       {availableBrowsers.map((b) => {
         const isSel = b.path === currentBrowserPath;
+        const showDot = isSel;
+        const isUp = isSel && isConnected;
         return (
           <button
             key={b.path}
@@ -86,14 +99,14 @@ export default function BrowserSelection({
               alt={b.name}
               className={clsx(
                 "w-6 h-6",
-                !isConnected && isSel && "animate-spin"
+                isBrowserLaunching && isSel && "animate-spin"
               )}
             />
-            {isSel && (
+            {showDot && (
               <span
                 className={clsx(
                   "absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full",
-                  isConnected ? "bg-green-500" : "bg-gray-500"
+                  isUp ? "bg-green-500" : "bg-gray-500"
                 )}
               />
             )}

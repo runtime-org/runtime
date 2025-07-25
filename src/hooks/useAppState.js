@@ -85,6 +85,7 @@ export const useAppState = create(
                     return { browserPool: pool }
                 })
             },
+            getWsFor: path => get().browserPool[path] || null,
             
             /*
             ** browser-related actions

@@ -47,8 +47,9 @@ function App() {
       /*
       ** launch or reuse a browser
       */
+      setIsConnected(false);
       const ws = await invoke("launch_browser", { browserPath: path });
-      console.log("connecting to", ws);
+      console.log("connecting...");
 
       /*
       ** asserte the connection
@@ -67,29 +68,34 @@ function App() {
       ** attach pptr
       */
       const browser = await connectPuppeteer(ws);
+      console.log("browser connected", browser);
+      setBrowserInstance(browser);
 
       /*
       ** open starter tab (will replace with our own static page)
       */
+
       const page = await browser.newPage();
+      
       setPageInstance(page);
+
       await page.goto("https://www.youtube.com", {
         waitUntil: "domcontentloaded",
         timeout: 10000
       });
 
       setIsConnected(true);
-      console.log("Full connection established ♾️");
+      console.log("♾️");
 
       /*
       ** housekeeping
       */
       browser.on("disconnected", () => {
-        // console.log("Puppeteer disconnected");
-        // setBrowserInstance(null);
-        // setPageInstance(null);
-        // setIsConnected(false);
-        // forgetBrowser(path);
+        console.log("Puppeteer disconnected");
+        setBrowserInstance(null);
+        setPageInstance(null);
+        setIsConnected(false);
+        forgetBrowser(path);
       })
 
     } catch (error) {
@@ -122,7 +128,8 @@ function App() {
   */
   const sessionViewProps = {
     browserInstance,
-    isConnected
+    isConnected,
+    connectBrowser
   };
 
   return (

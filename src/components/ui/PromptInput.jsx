@@ -1,8 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { HiArrowUp } from "react-icons/hi2";
+import { HiArrowUp, HiStop } from "react-icons/hi2";
 import { useAppState } from "../../hooks/useAppState";
 
-export default function PromptInput({ placeholder, onSubmit }) {
+export default function PromptInput({ 
+    placeholder, 
+    onSubmit,
+    onStop,
+    isProcessing
+}) {
     const [text, setText] = useState("");
     const { setCurrentQuery } = useAppState();
     const textareaRef = useRef(null);
@@ -12,6 +17,10 @@ export default function PromptInput({ placeholder, onSubmit }) {
         setCurrentQuery(text);
         onSubmit(text);
         setText("");
+    }
+
+    const handleStop = () => {
+        onStop();
     }
 
     useEffect(() => {
@@ -43,15 +52,22 @@ export default function PromptInput({ placeholder, onSubmit }) {
 
                 <div className="flex items-end self-stretch pb-[5px]">
                     <div 
-                        onClick={handleSend}
+                        onClick={isProcessing ? handleStop : handleSend}
                         className={`h-8 w-8 mr-1 rounded-full flex items-center justify-center duration-200 transition-colors ${
                             text.trim() ? 'bg-white cursor-pointer' : 'bg-gray-400/20'
                         }`}
                     >
-                        <HiArrowUp 
-                            strokeWidth={2}
-                            className={`w-4 h-4 duration-300 transition-colors ${text.trim() ? 'text-zinc-800' : 'text-gray-400'}`} 
-                        />
+                        {isProcessing ? (
+                            <HiStop 
+                                strokeWidth={2}
+                                className={`w-4 h-4 duration-300 transition-colors ${text.trim() ? 'text-zinc-800' : 'text-gray-400'}`} 
+                            />
+                        ) : (
+                            <HiArrowUp 
+                                strokeWidth={2}
+                                className={`w-4 h-4 duration-300 transition-colors ${text.trim() ? 'text-zinc-800' : 'text-gray-400'}`} 
+                            />
+                        )}
                     </div>
                 </div>
             </div>

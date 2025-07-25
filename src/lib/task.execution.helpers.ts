@@ -36,7 +36,7 @@ export function truncate(str: string, maxLength: number) {
 export async function researchHelper(opts: ResearchHelperOptions): Promise<{links: { index: number, href: string }[]}> {
     const {
         subQuery,
-        maxLinks = 8,
+        maxLinks = 6,
         browserInstance,
         currentPage,
         history,
@@ -96,7 +96,7 @@ Here is a list of interactive elements (index, tag, preview):
 
 ${listForLLM}
 
-Based on the list of elements above and the sub-query, select up to ${maxLinks} indices that should be visited, in order, to answer the sub-query. Prioritize the 4 to 5 most relevant indices.`
+Based on the list of elements above and the sub-query, select up to ${maxLinks} indices that should be visited, in order, to answer the sub-query. Prioritize the 3 to 4 most relevant indices.`
 
     const pickResp = await callLLM({
         modelId : "gemini-2.5-flash",

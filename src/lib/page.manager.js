@@ -8,6 +8,12 @@ export const createPagePool = ({ browser, maxTabs = 10}) => {
   * acquire a page from the pool
   */
   async function acquire() {
+    const existingPages = await browser.pages();
+    console.log("existingPages", existingPages);
+
+    if (existingPages.length > 0) {
+      return existingPages[0];
+    }
     if (active >= maxTabs) {
       await new Promise(function(res) { waiters.push(res); });
     }
@@ -29,11 +35,17 @@ export const createPagePool = ({ browser, maxTabs = 10}) => {
   * return a page from the pool
   */
    return async function pageManager() {
+    const existingPages = await browser.pages();
+    const isReusedPage = existingPages.length > 0;
+    
     const page = await acquire();
+    
     /*
     * auto release when the caller is finished
     */
-   page.once('close', () => release(page));
-   return page;
+    if (!isReusedPage) {
+      page.once('close', () => release(page));
+    }
+    return page;
    }
 };

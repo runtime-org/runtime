@@ -17,20 +17,26 @@ import {
 } from '../../lib/query.helpers';
 import { runWorkflow } from '../../lib/workflow.runner';
 import { taskEventEmitter } from '../../lib/emitters';
+import puppeteer from 'puppeteer-core/lib/esm/puppeteer/puppeteer-core-browser.js';
 
 SessionView.propTypes = {
   browserInstance: PropTypes.object,
-  isConnected: PropTypes.bool
+  isConnected: PropTypes.bool,
+  connectBrowser: PropTypes.func.isRequired
 };
 
-export default function SessionView({ browserInstance /* isConnected */ }) {
+export default function SessionView({ browserInstance, isConnected, connectBrowser }) {
 
   const {
     sessions, 
     activeSessionId, 
     openHome,
     addMessageToSession, 
-    getSessionMessages
+    getSessionMessages,
+    getWsFor,
+    setBrowserInstance,
+    setIsConnected,
+    currentBrowserPath
   } = useAppState();
 
   const activeSession   = sessions.find(s => s.id === activeSessionId);
@@ -40,6 +46,31 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
   const [isMessagesReady, setIsMessagesReady] = useState(false);
 
   const messagesEndRef  = useRef(null);
+  const cancelRef = useRef({ cancelled: false });
+
+  /*
+  ** reattach if we lost the in memory handle
+  */
+  const reconnectIfNeeded = useCallback(async () => {
+    if (browserInstance) return browserInstance;
+
+    const ws = getWsFor(currentBrowserPath);
+    if (!ws) return null;
+
+
+    try {
+      const browser = await puppeteer.connect({
+        browserWSEndpoint: ws,
+        defaultViewport: null
+      })
+
+      setBrowserInstance(browser);
+      setIsConnected(true);
+      return browser;
+    } catch (error) {
+      return null;
+    }
+  }, [browserInstance, currentBrowserPath]);
 
   /*
   * add a new message to the messages array and the session
@@ -85,15 +116,28 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
       messages.length === 0 &&
       activeSession.title 
     ) {
-      /*
-      ** save the message
-      */
-      addNewMessage({ type: 'user', text: activeSession.title });
 
-      /*
-      ** execute the query
-      */
-      executeQuery(activeSession.title);
+      const handleInitialQuery = async () => {
+
+        const browserOk = await reconnectIfNeeded();
+
+        if (!browserOk) {
+          console.log("browser not ok, relaunching")
+          return;
+        }
+
+        /*
+        ** save the message
+        */
+        addNewMessage({ type: 'user', text: activeSession.title });
+
+        /*
+        ** execute the query
+        */
+        executeQuery(activeSession.title);
+      };
+
+      handleInitialQuery();
     }
   }, [activeSessionId, messages.length, activeSession.title, isMessagesReady]);
 
@@ -240,7 +284,9 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
   * execute a query
   */
   const executeQuery = async (rawText) => {
+    console.log("executeQuery", rawText);
     setIsProcessing(true);
+    cancelRef.current.cancelled = false;
 
     try {
       /* 
@@ -256,15 +302,21 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
       /*
       * run the workflow
       */
+      let browser = browserInstance;
+      if (!browser) {
+        browser = await reconnectIfNeeded();
+      }
+
       await runWorkflow({
         originalQuery: rawText,
         sessionId: activeSessionId,
         queries,
         dependencies,
         researchFlags,
-        browserInstance,
-        onDone: (text) => addNewMessage({ type:'system', text }),
-        onError: (err) => addNewMessage({ type:'system', text: err, isError: true })
+        browserInstance: browser,
+        cancelRef,
+        // onDone: (text) => addNewMessage({ type:'system', text }),
+        // onError: (err) => addNewMessage({ type:'system', text: err, isError: true })
       })
     } catch (error) {
       addNewMessage({ type:'system', text: error.message, isError:true });
@@ -276,12 +328,31 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
   /*
   * handle the submit of a new message
   */
-  const handleSubmit = (text) => {
+  const handleSubmit = async (text) => {
     if (!text.trim() || isProcessing) return;
+
+    if (!browserInstance || !isConnected) {
+      console.log("launch the browser, browser should be relaunched")
+      return;
+    }
+
+    const browserOk = await reconnectIfNeeded();
+    if (!browserOk) {
+      console.log("browser not ok, relaunching")
+      return;
+    }
 
     addNewMessage({ type:'user', text: text.trim() });
     executeQuery(text.trim());
   };
+
+  /*
+  ** handle stop
+  */
+  const handleStop = () => {
+    cancelRef.current.cancelled = true;
+    setIsProcessing(false);
+  }
 
   /*
   * if no active session, show a loading message
@@ -324,7 +395,9 @@ export default function SessionView({ browserInstance /* isConnected */ }) {
             "Send a message to Runtime…"
           }
           onSubmit={handleSubmit}
-          disabled={isProcessing || !historyReady}
+          disabled={!historyReady}
+          isProcessing={isProcessing}
+          onStop={handleStop}
         />
       </div>
     </div>
