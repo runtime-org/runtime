@@ -177,7 +177,8 @@ export default function Construction({ activeTab, tasks = [] }) {
   const allTabs = tasks.flatMap((t) => t.tabs || []);
   const renderTabCard = (url, idx) => (
     <div
-      className="flex flex-col bg-zinc-800/20 gap-1 border border-zinc-700/20 hover:border-zinc-700/60 hover:bg-zinc-700/10 transition-colors rounded-md py-1 pl-3 pr-5 relative hover:cursor-pointer"
+      className="flex flex-col bg-zinc-800/20 gap-1 border border-zinc-700/20 hover:border-blue-400/25 
+                 hover:bg-zinc-700/10 transition-colors rounded-md py-1 pl-3 pr-5 relative hover:cursor-pointer"
       key={idx}
       onClick={() => linkRefs.current[url]?.click()}
     >
@@ -192,13 +193,13 @@ export default function Construction({ activeTab, tasks = [] }) {
             {parseLinkToDomain(url)}
           </h3>
 
-          <div className="flex items-center w-full absolute -bottom-3">
+          <div className="flex items-center w-full absolute -bottom-4">
             <a
               ref={(el) => (linkRefs.current[url] = el)}
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-zinc-400 truncate"
+              className="text-[10px] text-zinc-400 truncate"
             >
               {url}
             </a>
@@ -226,8 +227,6 @@ export default function Construction({ activeTab, tasks = [] }) {
           </div>
         ) : (
           <div className="flex items-center gap-2 text-xs text-zinc-400">
-            {/* <BiLoader className="w-3 h-3 animate-spin" />
-            <span>Preparing execution plan…</span> */}
           </div>
         )
       ) : allTabs.length ? (
