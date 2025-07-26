@@ -60,7 +60,7 @@ export default function PromptInput({
                         {isProcessing ? (
                             <HiStop 
                                 strokeWidth={2}
-                                className={`w-4 h-4 duration-300 transition-colors ${text.trim() ? 'text-zinc-800' : 'text-gray-400'}`} 
+                                className={`w-4 h-4 duration-300 transition-colors text-gray-400`} 
                             />
                         ) : (
                             <HiArrowUp 

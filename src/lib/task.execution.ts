@@ -329,5 +329,5 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         currentPage
     });
 
-    await currentPage.close();
+    // await currentPage.close();
 }
