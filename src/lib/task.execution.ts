@@ -330,4 +330,10 @@ export async function runSequentialTask(opts: SeqRunOptions) {
     });
 
     // await currentPage.close();
+    // remove the mesh overlay
+    await handlePuppeteerAction({
+        actionDetails:{ action:'hide_mesh_overlay', parameters:{}, taskId:'ui_overlay' },
+        browserInstance, 
+        currentPage
+    });
 }
