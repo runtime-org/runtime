@@ -18,6 +18,7 @@ Return one synthesize_results tool call.
 Important:
 - Please format your response using markdown formatting (for example, use '#' for headings, '**word**' for bold, and ' *' for bullet points).
 - Always use bullet points to enhance clarity and readability, unless the answer consists of a single sentence. Avoid presenting answers as a block of sentences; instead, use bullet points for better organization.
+  But always start with a sentence.
 - Limit each paragraph to a maximum of two sentences, but always prefer to use bullet points to enhance clarity and readability.
 - Do not mention any tools unless they are directly relevant to the user's question.
 - If there is missing information or a knowledge gap, provide the best possible answer based on the information available.

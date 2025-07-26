@@ -16,7 +16,6 @@ export async function runWorkflow(opts: RunnerOptions) {
     researchFlags
   } = opts;
 
-  console.log("browserInstance", browserInstance);
   const pageManager = createPagePool({ browser: browserInstance });
 
   /*  

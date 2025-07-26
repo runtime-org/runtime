@@ -27,7 +27,7 @@ export function emit(event: string, payload: any) {
 ** truncate a string to a given length
 */
 export function truncate(str: string, maxLength: number) {
-    return str.length > maxLength ? str.slice(0, maxLength) + "…" : str;
+    return str.length > maxLength ? str.slice(0, maxLength) + "..." : str;
 }
 
 /*
@@ -53,6 +53,7 @@ export async function researchHelper(opts: ResearchHelperOptions): Promise<{link
         speakToUser: `Looking for links to answer: ${subQuery}`,
         taskId: taskId,
         status: "running",
+        url: currentPage.url()
     });
     
     const pptrRes = await handlePuppeteerAction({
@@ -99,11 +100,11 @@ ${listForLLM}
 Based on the list of elements above and the sub-query, select up to ${maxLinks} indices that should be visited, in order, to answer the sub-query. Prioritize the 3 to 4 most relevant indices.`
 
     const pickResp = await callLLM({
-        modelId : "gemini-2.5-flash",
+        modelId : "gemini-2.5-flash-lite",
         contents: [{ role : "user", parts: [{ text: prompt }] }],
         config: {
             temperature : 0,
-            maxOutputTokens : 10096,
+            maxOutputTokens : 100000,
             mode : "ANY",
             tools : [{ functionDeclarations: [PickLinksDeclaration] }]
         },
@@ -157,6 +158,7 @@ export async function visitAndSummarizeUrl(opts: VisitAndSummarizeUrlOptions) {
         speakToUser: `Visiting: ${truncate(href, 40)}`,
         taskId: taskId,
         status: "running",
+        url: currentPage.url()
     });
     const navRes = await handlePuppeteerAction({
         actionDetails: {
@@ -201,6 +203,7 @@ export async function visitAndSummarizeUrl(opts: VisitAndSummarizeUrlOptions) {
         speakToUser: `Summarizing the text`,
         taskId: taskId,
         status: "running",
+        url: currentPage.url()
     });
     const { summary } = await summarizeText({
         rawText: (textRes.data as any)?.visibleText || "",

@@ -173,15 +173,16 @@ Respond ONLY with an evaluate_answer function call.
 export async function summarizeText({
     rawText, 
     query, 
-}: {rawText: string, query?: string}): Promise<{summary: string}> {
+    maxRetries = 7
+}: {rawText: string, query?: string, maxRetries?: number}): Promise<{summary: string}> {
     const prompt = `Raw visible text: ${truncate(rawText, 2000000)}\nSub-query: ${query}`;
     
     const summaryCall = await callLLM({
-        modelId: "gemini-2.5-flash",
+        modelId: "gemini-2.5-flash-lite",
         contents: [{ role: "user", parts: [ { text: prompt } ] }],
         config: {
             temperature: 0.0,
-            maxOutputTokens: 10096,
+            maxOutputTokens: 700000,
             mode: "ANY",
             tools: [{ functionDeclarations: [SummaryDeclaration] }]
         },
@@ -189,6 +190,23 @@ export async function summarizeText({
     });
 
     const fn = getFnCall(summaryCall);
+
+    if (!fn?.args?.summary) {
+        // check if summaryCall.candidates[0].content.parts[0].text is not empty
+        if (summaryCall?.candidates?.[0]?.content?.parts?.[0]?.text) {
+            return {
+                summary: summaryCall.candidates[0].content.parts[0].text
+            }
+        }
+        const retry = maxRetries - 1;
+        if (retry > 0) {
+            return await summarizeText({
+                rawText: rawText,
+                query: query,
+                maxRetries: retry
+            });
+        }
+    }
     return {
         summary: fn?.args?.summary ?? rawText,
     }

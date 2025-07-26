@@ -69,6 +69,14 @@ export default function Construction({ activeTab, tasks = [] }) {
   }, [tasks, appearedPlans]);
 
   /*
+  ** parse link to domain name
+  */
+  const parseLinkToDomain = (link) => {
+    const url = new URL(link);
+    return url.hostname;
+  }
+
+  /*
   ** get the status icon
   */
   const statusIcon = (s) => ({
@@ -167,46 +175,32 @@ export default function Construction({ activeTab, tasks = [] }) {
   ** render the tab card
   */
   const allTabs = tasks.flatMap((t) => t.tabs || []);
-  const renderTabCard = (tab, idx) => (
+  const renderTabCard = (url, idx) => (
     <div
-      className="flex flex-col bg-zinc-800/20 gap-1 border border-zinc-700/20 hover:border-zinc-700/60 hover:bg-zinc-700/10 transition-colors rounded-md py-3 pl-3 pr-5 relative"
-      key={tab.id}
-      onClick={() => linkRefs.current[tab.id]?.click()}
+      className="flex flex-col bg-zinc-800/20 gap-1 border border-zinc-700/20 hover:border-zinc-700/60 hover:bg-zinc-700/10 transition-colors rounded-md py-1 pl-3 pr-5 relative hover:cursor-pointer"
+      key={idx}
+      onClick={() => linkRefs.current[url]?.click()}
     >
-      <div className="absolute top-0 left-0 flex items-center justify-between w-full h-5 px-1">
-        <span className="text-xs font-medium text-zinc-400">{idx + 1}</span>
-        {tab.status && (
-          <span className="flex items-center gap-1">
-            {statusIcon(tab.status)}
-            <span className="text-xs text-zinc-500">{tab.status}</span>
-          </span>
-        )}
-      </div>
 
-      <div className="flex items-center gap-2 mt-2">
+      <div className="flex items-center gap-2">
         <div className="w-7 h-7 flex items-center justify-center rounded-full overflow-hidden">
-          {tab.icon ? (
-            <img src={tab.icon} alt={tab.title} className="w-full h-full" />
-          ) : (
-            <HiOutlineGlobeAlt className="w-7 h-7 text-zinc-400/70" />
-          )}
+          <HiOutlineGlobeAlt className="w-7 h-7 text-zinc-400/70" />
         </div>
 
-        <div className="flex items-center grow max-w-[80%] relative">
-          <h3 className="text-sm font-medium text-zinc-300 truncate mb-1">
-            {tab.title}
+        <div className="flex items-center grow max-w-[80%] h-full relative -mt-3">
+          <h3 className="text-md font-medium text-zinc-300 truncate">
+            {parseLinkToDomain(url)}
           </h3>
 
           <div className="flex items-center w-full absolute -bottom-3">
-            <FiArrowUpRight className="w-[14px] h-[14px] text-zinc-400" />
             <a
-              ref={(el) => (linkRefs.current[tab.id] = el)}
-              href={tab.url}
+              ref={(el) => (linkRefs.current[url] = el)}
+              href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-zinc-400 hover:text-zinc-300 truncate"
+              className="text-xs text-zinc-400 truncate"
             >
-              {tab.url}
+              {url}
             </a>
           </div>
         </div>
@@ -237,7 +231,8 @@ export default function Construction({ activeTab, tasks = [] }) {
           </div>
         )
       ) : allTabs.length ? (
-        <div className="flex flex-col gap-1 mb-4">
+        <div className="max-h-[200px] overflow-y-auto flex flex-col gap-1 mb-4 border
+                        border-zinc-700/40 rounded-[14px] px-2 py-1">
           {allTabs.map(renderTabCard)}
         </div>
       ) : (

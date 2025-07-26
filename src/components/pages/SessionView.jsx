@@ -214,7 +214,7 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
     /*
     ** starting the action (puppeteer or llm)
     */
-    const handleActionStart = ({ taskId, action, speakToUser, status, actionId }) => {
+    const handleActionStart = ({ taskId, action, speakToUser, status, actionId, url }) => {
       setMessages(prev => {
         const clone = [...prev];
 
@@ -229,7 +229,7 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
           timestamp: new Date().toISOString(),
         };
 
-        sysMsg.tasks = addPlanToTask({tasks: sysMsg.tasks, taskId, newPlan: newPlanStep});
+        sysMsg.tasks = addPlanToTask({tasks: sysMsg.tasks, taskId, newPlan: newPlanStep, action, url});
 
         clone[sysIndex] = sysMsg;
         setTimeout(() => {
@@ -284,7 +284,7 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
   * execute a query
   */
   const executeQuery = async (rawText) => {
-    console.log("executeQuery", rawText);
+
     setIsProcessing(true);
     cancelRef.current.cancelled = false;
 

@@ -1,3 +1,4 @@
+
 /*
 ** build a digest of the recent conversation
 */
@@ -23,11 +24,38 @@ export function buildHistoryDigest(msgs: any[]): string {
 /*
 ** add and update plan to task
 */
-export function addPlanToTask({tasks, taskId, newPlan}) {
-    return tasks.map(t => 
-        t.taskId === taskId ? { ...t, plans: [...t.plans, newPlan] } : t
-    )
+export function addPlanToTask({
+    tasks, 
+    taskId, 
+    newPlan, 
+    action, 
+    url
+}: {
+    tasks: any[],
+    taskId: string,
+    newPlan: any,
+    action: string,
+    url: string
+}) {
+
+    return tasks.map(t => {
+        if (t.taskId !== taskId) return t;
+
+        const next: any = {
+            ...t,
+            plans: [...t.plans, newPlan]
+        }
+
+        if (action === "go_to_url") {
+            console.log("url", url);
+            next.tabs = [...t.tabs, url]
+        }
+        return next;
+    })
 }
+
+
+
 export function updatePlanInTask({tasks, taskId, actionId, status, error}) {
     return tasks.map(t => 
         t.taskId === taskId 

@@ -79,10 +79,10 @@ function App() {
       
       setPageInstance(page);
 
-      await page.goto("https://www.youtube.com", {
-        waitUntil: "domcontentloaded",
-        timeout: 10000
-      });
+      // await page.goto("https://www.youtube.com", {
+      //   waitUntil: "domcontentloaded",
+      //   timeout: 10000
+      // });
 
       setIsConnected(true);
       console.log("♾️");

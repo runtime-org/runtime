@@ -192,7 +192,8 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                     action: toolCall.name, 
                     speakToUser: sentence, 
                     actionId, 
-                    status:"running" 
+                    status:"running" ,
+                    url: currentPage.url()
                 });
 
                 let pptrRes = await handlePuppeteerAction({
@@ -297,7 +298,8 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         action: "synthesize_results",
         actionId,
         speakToUser: "Reasoning about the results",
-        status: "running"
+        status: "running",
+        url: currentPage.url()
     });
 
     const finalResult = await synthesizeResults(originalQuery, results, model);
