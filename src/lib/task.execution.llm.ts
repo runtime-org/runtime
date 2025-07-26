@@ -24,22 +24,32 @@ Important:
 - If there is missing information or a knowledge gap, provide the best possible answer based on the information available.
 `;
 
-console.log("synthesisPrompt", synthesisPrompt);
+  console.log("synthesisPrompt", synthesisPrompt);
 
-  const synthResp = await callLLM({
-    modelId: model,
-    contents: [{ role: "user", parts: [{ text: synthesisPrompt }] }],
-    config: {
-      temperature: 0.2,
-      maxOutputTokens: 4096,
-      mode: "ANY",
-      tools: [{ functionDeclarations: SynthesisDeclaration }]
-    }, 
-    ignoreFnCallCheck: true
-  });
+  let synthFn: any = null;
+  let attempt = 0;
+  const maxTries = 2;
 
-  const synthFn = getFnCall(synthResp);
-  console.log("synthFn", synthFn);
+  while (attempt < maxTries && !synthFn?.args?.synthesized_answer) {
+    attempt++;
+    console.log(`Synthesis attempt ${attempt}/${maxTries}`);
+
+    const synthResp = await callLLM({
+      modelId: model,
+      contents: [{ role: "user", parts: [{ text: synthesisPrompt }] }],
+      config: {
+        temperature: attempt === 1 ? 0.2 : 0.3,
+        maxOutputTokens: 8192,
+        mode: "ANY",
+        tools: [{ functionDeclarations: SynthesisDeclaration }]
+      }, 
+      ignoreFnCallCheck: true
+    });
+
+    synthFn = getFnCall(synthResp);
+    console.log(`synthFn (attempt ${attempt})`, synthFn);
+  }
+
   const finalAnswer =
     synthFn?.args?.synthesized_answer ||
     synthFn?.args?.summary ||

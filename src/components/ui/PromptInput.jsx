@@ -54,13 +54,15 @@ export default function PromptInput({
                     <div 
                         onClick={isProcessing ? handleStop : handleSend}
                         className={`h-8 w-8 mr-1 rounded-full flex items-center justify-center duration-200 transition-colors ${
-                            text.trim() ? 'bg-white cursor-pointer' : 'bg-gray-400/20'
+                            isProcessing
+                                ? 'bg-white cursor-pointer'
+                                : (text.trim() ? 'bg-white cursor-pointer' : 'bg-gray-400/20')
                         }`}
                     >
                         {isProcessing ? (
                             <HiStop 
                                 strokeWidth={2}
-                                className={`w-4 h-4 duration-300 transition-colors text-gray-400`} 
+                                className={`w-4 h-4 duration-300 transition-colors text-gray-400 ${text.trim() ? 'text-zinc-800' : 'text-gray-400'}`} 
                             />
                         ) : (
                             <HiArrowUp 
