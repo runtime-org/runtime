@@ -253,8 +253,7 @@ export const ActionDeclarations = [
   },
 ];
 
-export const QueryAnalysisDeclaration = [
-  {
+export const QueryAnalysisDeclaration = {
     name: 'analyze_query_strategy',
     description: 
         `Break the user query into an ordered SEQUENTIAL chain of sub-queries.
@@ -303,8 +302,27 @@ export const QueryAnalysisDeclaration = [
       },
       required: ['queries', 'dependencies', 'researchFlags']
     }
+};
+
+export const SmallTalkDeclaration = {
+  name: "small_talk_response",
+  description:
+    `Use when the user is clearly making polite conversation or the request
+     requires no information gathering. Return a direct natural-language reply.
+     If the user is asking for a joke, return a joke. Or if the user is asking for factual information, 
+     return a fact. For example, if the user asks "What is the capital of France?", return "The capital of France is Paris."`,
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      reply: {
+        type: Type.STRING,
+        description: "A concise, friendly reply from the assistant."
+      }
+    },
+    required: ["reply"]
   }
-];
+};
+  
 
 
 export const AvailableActions = [

@@ -119,13 +119,6 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
 
       const handleInitialQuery = async () => {
 
-        const browserOk = await reconnectIfNeeded();
-
-        if (!browserOk) {
-          console.log("browser not ok, relaunching")
-          return;
-        }
-
         /*
         ** save the message
         */
@@ -297,6 +290,13 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
       console.log("historyDigest", historyDigest);
 
       const resp  = await splitQuery({query: rawText, history: historyDigest});
+
+      if (resp.kind === "small_talk") {
+        const { reply } = resp;
+        addNewMessage({ type:'system', text: reply });
+        return;
+      }
+
       const { queries, dependencies, researchFlags } = resp;
 
       /*
@@ -305,6 +305,7 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
       let browser = browserInstance;
       if (!browser) {
         browser = await reconnectIfNeeded();
+        console.log("browser", browser);
       }
 
       await runWorkflow({
@@ -330,17 +331,6 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
   */
   const handleSubmit = async (text) => {
     if (!text.trim() || isProcessing) return;
-
-    if (!browserInstance || !isConnected) {
-      console.log("launch the browser, browser should be relaunched")
-      return;
-    }
-
-    const browserOk = await reconnectIfNeeded();
-    if (!browserOk) {
-      console.log("browser not ok, relaunching")
-      return;
-    }
 
     addNewMessage({ type:'user', text: text.trim() });
     executeQuery(text.trim());

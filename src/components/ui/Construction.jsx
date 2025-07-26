@@ -226,8 +226,8 @@ export default function Construction({ activeTab, tasks = [] }) {
           </div>
         ) : (
           <div className="flex items-center gap-2 text-xs text-zinc-400">
-            <BiLoader className="w-3 h-3 animate-spin" />
-            <span>Preparing execution plan…</span>
+            {/* <BiLoader className="w-3 h-3 animate-spin" />
+            <span>Preparing execution plan…</span> */}
           </div>
         )
       ) : allTabs.length ? (

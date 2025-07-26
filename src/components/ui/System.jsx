@@ -70,11 +70,15 @@ export default function System({
           
           {/* Back to simple text display */}
           <div className="mt-3 relative">
-            {/* <p className="text-sm text-[#a4a4a8] font-[500]">{message.text}</p> */}
-            <ParseText text={message.text} />
+            {
+              message.text && (
+                <>
+                  <ParseText text={message.text} />
+                  <ActionIcons text={message.text} />
+                </>
+              )
+            }
             
-            {/* Action icons */}
-            <ActionIcons text={message.text} />
           </div>
         </div>
       )}

@@ -3,7 +3,7 @@ import { TbThumbUp, TbThumbDown, TbCopy } from "react-icons/tb";
 import PropTypes from 'prop-types';
 
 ActionIcons.propTypes = {
-  text: PropTypes.string.isRequired,
+  text: PropTypes.string,
   onThumbsUp: PropTypes.func,
   onThumbsDown: PropTypes.func,
   onCopy: PropTypes.func,
@@ -12,7 +12,7 @@ ActionIcons.propTypes = {
 };
 
 export default function ActionIcons({ 
-  text, 
+  text = "", 
   onThumbsUp,
   onThumbsDown,
   onCopy,

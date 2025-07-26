@@ -1,5 +1,5 @@
 import { callLLM } from "./llm.engine";
-import { QueryAnalysisDeclaration } from "./tools";
+import { QueryAnalysisDeclaration, SmallTalkDeclaration } from "./tools";
 import { getFnCall } from "./task.execution.helpers";
 import { QUERY_FEW_SHOT } from "./query.fewshot";
 import { SplitQueryResponse } from "./query.schemas";
@@ -36,7 +36,7 @@ Date: ${analysisDate}
         temperature: 0.0,
         maxOutputTokens: 10096,
         mode: 'ANY',
-        tools: [{ functionDeclarations: QueryAnalysisDeclaration }]
+        tools: [{ functionDeclarations: [QueryAnalysisDeclaration, SmallTalkDeclaration] }]
     }
     /*
     ** call LLM
@@ -52,9 +52,22 @@ Date: ${analysisDate}
     ** get function call
     */
     const call = getFnCall(response);
-    if (!call) return { queries: [query], dependencies: [], researchFlags: [] };
+    if (!call) return { 
+        queries: [query], 
+        kind: "analysis",
+        dependencies: [], 
+        researchFlags: [] 
+    };
+
+    if (call?.name === "small_talk_response") {
+        return {
+            kind: "small_talk",
+            reply: call?.args?.reply ?? ""
+        }
+    }
 
     const resp = {
+        kind: "analysis",
         queries: call?.args?.queries ?? [query],
         dependencies: call?.args?.dependencies ?? [],
         researchFlags: call?.args?.researchFlags ?? []

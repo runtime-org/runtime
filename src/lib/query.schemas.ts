@@ -3,7 +3,9 @@
 ** split query
 */
 export interface SplitQueryResponse {
-  queries: string[];
-  dependencies: { query_index: number, depends_on: number[] }[];
-  researchFlags: boolean[];
+  kind: string;
+  queries?: string[];
+  dependencies?: { query_index: number, depends_on: number[] }[];
+  researchFlags?: boolean[];
+  reply?: string;
 }
