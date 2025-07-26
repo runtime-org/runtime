@@ -33,6 +33,7 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
     openHome,
     addMessageToSession, 
     getSessionMessages,
+    forgetBrowser,
     getWsFor,
     setBrowserInstance,
     setIsConnected,
@@ -51,26 +52,47 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
   /*
   ** reattach if we lost the in memory handle
   */
-  const reconnectIfNeeded = useCallback(async () => {
+  const reconnectIfNeeded = async (maxRetries = 3) => {
     if (browserInstance) return browserInstance;
 
     const ws = getWsFor(currentBrowserPath);
-    if (!ws) return null;
 
-
-    try {
-      const browser = await puppeteer.connect({
-        browserWSEndpoint: ws,
-        defaultViewport: null
-      })
-
-      setBrowserInstance(browser);
-      setIsConnected(true);
-      return browser;
-    } catch (error) {
+    if (!ws){
+      console.log("no ws found, relaunching browser");
       return null;
     }
-  }, [browserInstance, currentBrowserPath]);
+
+    /*
+    ** try to reconnect to the browser
+    */
+    let attempts = 0;
+    while (attempts <= maxRetries) {
+      const ws = getWsFor(currentBrowserPath);
+
+      if (ws) {
+        try {
+          const br = await puppeteer.connect({
+            browserWSEndpoint: ws,
+            defaultViewport: null
+          })
+          setBrowserInstance(br);
+          setIsConnected(true);
+          return br;
+        } catch (error) {
+          /*
+          ** if the ws is stale, drop it
+          */
+          console.log("stale ws, dropping it", error.message);
+          forgetBrowser(currentBrowserPath);
+        }
+      }
+      await connectBrowser(currentBrowserPath);
+
+      attempts += 1;
+    }
+
+    return null;
+  }
 
   /*
   * add a new message to the messages array and the session
@@ -305,7 +327,16 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
       let browser = browserInstance;
       if (!browser) {
         browser = await reconnectIfNeeded();
-        console.log("browser", browser);
+        console.log("browser after reconnect", browser);
+      }
+
+      if (!browser) {
+        addNewMessage({ 
+          type:'system', 
+          text: "Ops, something went wrong, please relaunch runtime",
+          isError: true
+        });
+        return;
       }
 
       await runWorkflow({
