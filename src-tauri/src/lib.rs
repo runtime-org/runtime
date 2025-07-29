@@ -1,6 +1,8 @@
 mod utils;
+mod skills;
 mod config;
 mod sketchs;
+mod sketchs_browser;
 mod network;
 mod commands;
 mod platform;
@@ -15,7 +17,8 @@ use commands::{
     validate_ws_endpoint,
     scan_for_existing_browsers,
     debug_browser_connection,
-    download_and_extract_resource
+    download_and_extract_resource,
+    load_skills
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -32,7 +35,8 @@ pub fn run() {
             validate_ws_endpoint,
             scan_for_existing_browsers,
             debug_browser_connection,
-            download_and_extract_resource
+            download_and_extract_resource,
+            load_skills
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

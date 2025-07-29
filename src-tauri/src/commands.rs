@@ -16,6 +16,8 @@ use crate::browser_manager::{
     sunset_browser_instance,
 };
 use crate::utils::download_and_extract;
+use crate::skills::download_skill_json;
+use crate::sketchs_browser::WebsiteSkills;
 
 #[tauri::command]
 pub async fn download_and_extract_resource(url: String) -> Result<String, String> {
@@ -137,7 +139,7 @@ pub async fn launch_browser(browser_path: Option<String>) -> Result<String, Stri
 
     match launch_new_instance(&target_browser_path, port).await {
         Ok(ws_url) => {
-            let _ = create_new_page(port, Some("https://www.google.com")).await;
+            // let _ = create_new_page(port, Some("https://www.google.com")).await;
             Ok(ws_url)
         }
         Err(e) => Err(format!(
@@ -225,3 +227,12 @@ pub async fn debug_browser_connection(browser_path: String) -> Result<String, St
     Ok(debug_info.join("\n"))
 }
 
+#[tauri::command]
+pub async fn load_skills(
+    domain: &str, 
+    company: Option<String>, 
+    repo: Option<String>, 
+    branch: String
+) -> Result<WebsiteSkills, String> {
+    download_skill_json(domain.to_string(), company, repo, branch).await
+}

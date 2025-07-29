@@ -33,6 +33,7 @@ export interface Workflow {
 }
 
 export interface RunnerOptions {
+  mode: string;
   originalQuery: string;
   sessionId: string;
   queries: string[];
@@ -42,4 +43,5 @@ export interface RunnerOptions {
   }[];
   browserInstance: any;
   researchFlags: number[];
+  steps: string[];
 }

@@ -9,10 +9,9 @@ export const createPagePool = ({ browser, maxTabs = 10}) => {
   */
   async function acquire() {
     const existingPages = await browser.pages();
-    console.log("existingPages", existingPages);
 
     if (existingPages.length > 0) {
-      return existingPages[0];
+      return getActivePage(browser);
     }
     if (active >= maxTabs) {
       await new Promise(function(res) { waiters.push(res); });
@@ -38,6 +37,7 @@ export const createPagePool = ({ browser, maxTabs = 10}) => {
     const existingPages = await browser.pages();
     const isReusedPage = existingPages.length > 0;
     
+
     const page = await acquire();
     
     /*
@@ -49,3 +49,17 @@ export const createPagePool = ({ browser, maxTabs = 10}) => {
     return page;
    }
 };
+
+/*
+** get active page from the pool
+*/
+export async function getActivePage(browser) {
+  const pages = await browser.pages();
+  for (const page of pages) {
+    const isActive = await page.evaluate(() => {
+      document.visibilityState === "visible" && document.hasFocus();
+    });
+    if (isActive) return page;
+  }
+  return pages[0];
+}

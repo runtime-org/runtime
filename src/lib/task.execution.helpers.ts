@@ -47,6 +47,7 @@ export async function researchHelper(opts: ResearchHelperOptions): Promise<{link
     ** get the interactive elements
     */
     const simplifyingId = uuidv4();
+
     emit("task_action_start", { 
         actionId: simplifyingId, 
         action: "get_simplified_page_context", 
@@ -55,11 +56,11 @@ export async function researchHelper(opts: ResearchHelperOptions): Promise<{link
         status: "running",
         url: currentPage.url()
     });
-    
+
     const pptrRes = await handlePuppeteerAction({
         actionDetails : {
           action : "get_simplified_page_context",
-          parameters: { include_screenshot: false, max_elements: 50 },
+          parameters: { max_elements: 10000 },
           taskId : taskId
         },
         currentPage,
@@ -69,7 +70,7 @@ export async function researchHelper(opts: ResearchHelperOptions): Promise<{link
     pushHistory(
         history, 
         'get_simplified_page_context', 
-        { include_screenshot: false, max_elements: 50 },
+        { max_elements: 10000 },
         pptrRes.data
     );
 
@@ -83,24 +84,27 @@ export async function researchHelper(opts: ResearchHelperOptions): Promise<{link
     */
     const listForLLM = Object.values(elementMap)
         .map((e: any) => {
-            const preview = (e.text || e.attributes?.["aria-label"] || "").slice(0, 80);
-            const url = e.attributes?.href 
-                ? ` → ${truncate(e.attributes.href, 40)}` 
-                : "";
-            return `${e.index}. [${e.tag}] ${preview}${url}`;
+            return `${e.index}. [${e.tag}] ${e.accessibleName} - ${truncate(e.href, 40)}`;
         })
         .join("\n");
     
-    const prompt = `Sub-query: "${subQuery}"
+    const prompt = `
+You are a helpful assistant that helps users find information on a web page.
+you should use the pick_links tool to select the indices of the elements that should be visited and return the function call.
 
-Here is a list of interactive elements (index, tag, preview):
+Sub-query: "${subQuery}"
+
+Here is a list of interactive elements (index, tag, accessibleName, href):
 
 ${listForLLM}
 
-Based on the list of elements above and the sub-query, select up to ${maxLinks} indices that should be visited, in order, to answer the sub-query. Prioritize the 3 to 4 most relevant indices.`
+Based on the list of elements above and the sub-query, select up to ${maxLinks} indices 
+that should be visited, in order, to answer the sub-query. Prioritize the 3 to 4 most relevant indices.
+
+Return the indices as an array of numbers using indices as the keys not pick_links`
 
     const pickResp = await callLLM({
-        modelId : "gemini-2.5-flash-lite",
+        modelId : "gemini-2.5-flash",
         contents: [{ role : "user", parts: [{ text: prompt }] }],
         config: {
             temperature : 0,
@@ -110,6 +114,7 @@ Based on the list of elements above and the sub-query, select up to ${maxLinks} 
         },
         ignoreFnCallCheck: true
     });
+
     emit("task_action_complete", {
         actionId: simplifyingId,
         action: "get_simplified_page_context",
@@ -126,9 +131,8 @@ Based on the list of elements above and the sub-query, select up to ${maxLinks} 
     const links = indices
         .map(i => ({
             index: i,
-            href: elementMap[i]?.attributes?.href
-        }))
-        .filter(l => !!l.href); // drop button without href (links)
+            href: elementMap[i]?.href
+        }));
 
     return { links };
 
@@ -317,24 +321,6 @@ export function semanticPptrExplanation(fnName: string, fnArgs: any, rawResult?:
         case 'scroll_to_text':
             description = `Successfully scrolled to find "${fnArgs.text}"`;
             break;
-            
-        /*
-        ** dropdown interactions
-        */
-        case 'get_dropdown_options':
-            description = `Successfully retrieved dropdown options from element ${fnArgs.index}`;
-            break;
-            
-        case 'select_dropdown_option':
-            description = `Successfully selected "${fnArgs.text}" from dropdown ${fnArgs.index}`;
-            break;
-            
-        /*
-        ** content extraction
-        */
-        case 'get_accessibility_tree':
-            description = `Successfully retrieved accessibility tree with ${fnArgs.number_of_elements} elements`;
-            break;
         
         case 'get_visible_text':
             description = `Successfully retrieved visible text: ${rawResult.summary}`;
@@ -364,40 +350,4 @@ export function semanticPptrExplanation(fnName: string, fnArgs: any, rawResult?:
     }
     
     return description;
-}
-
-/*
-** purge history of a specific link
-*/
-export function removeLinkFromHistory(
-    history: any[],
-    linkOrPageUrl: string,
-    elemIndex?: number
-) {
-    return history.filter(msg => {
-        const text  = msg?.parts?.[0]?.text ?? "";
-        const fCall = msg?.parts?.[0]?.functionCall;
-    
-        /*
-        ** Match by raw URL
-        */
-        if (!elemIndex && typeof linkOrPageUrl === "string") {
-          if (text.includes(linkOrPageUrl)) return false;
-          if (fCall?.args?.data?.interactiveElements) {
-            return !fCall.args.data.interactiveElements.some(
-              (el: any) => el.attributes?.href === linkOrPageUrl
-            );
-          }
-        }
-    
-        /*
-        ** Match by pageUrl + element index
-        */
-        if (elemIndex !== undefined) {
-          const key = `${linkOrPageUrl}::${elemIndex}`;
-          return !text.includes(key);
-        }
-    
-        return true;
-      });
 }

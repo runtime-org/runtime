@@ -8,5 +8,5 @@ export default defineConfig([
   { ignores: ["src-tauri/"]},
   { files: ["**/*.{js,mjs,cjs,jsx}"], plugins: { js }, extends: ["js/recommended"] },
   { files: ["**/*.{js,mjs,cjs,jsx}"], languageOptions: { globals: globals.browser } },
-  pluginReact.configs.flat.recommended,
+  pluginReact.configs.flat.recommended
 ]);

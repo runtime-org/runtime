@@ -99,23 +99,36 @@ Return ONLY a generate_action_plan tool call with the "steps" array.
 /*
 ** translate the atomic web-browsing instruction into the proper tool invocation.
 */
-export async function stepTranslator(step: string, history: string[]): Promise<Record<string, any>> {
-    const prompt = `Translate the atomic web-browsing instruction below into the proper tool invocation.
+export async function stepTranslator(step: string, history: string[], ctx: any[]): Promise<Record<string, any>> {
+    let prompt = `Translate the atomic web-browsing micro-step instruction below into the proper tool invocation.
+
+You will be given a micro step instruction and you need to translate it into the proper tool invocation.
 
     Guidelines:
     - choose the single tool that accomplishes the action, taking prior tool usage in this conversation into account.
     - Output ONLY the call in the exact form of the tool invocation.
     - Do not add any explanatory text.
-    - Always use tool 'done' to return the final answer to the sub-query.
+    - Do not ask any clarification question to the user.`;
+
+    // Include page structure context if available
+    if (ctx && ctx.length > 0) {
+        prompt += `
+
+    Current Page Structure:
+    ${JSON.stringify(ctx, null, 2)}`;
+    }
+
+    prompt += `
 
     Instruction:
     ${step}
     `;
+
     const config = {
         temperature: 0.0,
         maxOutputTokens: 1000,
         mode: 'ANY',
-        tools: [{ functionDeclarations: [ActionDeclarations] }]
+        tools: [{ functionDeclarations: ActionDeclarations }]
     }
 
     const resp = await callLLM({ 

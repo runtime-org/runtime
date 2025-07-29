@@ -12,6 +12,7 @@ export class DomService {
         this.page = page;
     }
 
+    // legacy
     // get clickable elements with indices
     async getClickableElementsWithIndices(options: {
         highlightElements?: boolean;
@@ -27,17 +28,6 @@ export class DomService {
         } = options;
 
         const result = await this.page.evaluate((opts) => {
-            // remove any existing highlights first
-            document.querySelectorAll('[data-runtime-highlight]').forEach(el => {
-                if (el.getAttribute('data-runtime-highlight')?.startsWith('label-')) {
-                    el.remove();
-                } else {
-                    el.removeAttribute('data-runtime-highlight');
-                    (el as HTMLElement).style.removeProperty('outline');
-                    (el as HTMLElement).style.removeProperty('outline-offset');
-                    (el as HTMLElement).style.removeProperty('box-shadow');
-                }
-            });
 
             // define clickable selectors
             const clickableSelectors = [
@@ -74,16 +64,6 @@ export class DomService {
 
             // remove duplicates
             const uniqueElements = [...new Set(elements)];
-
-            /*
-            ** filter out parent elements that contain other interactive elements in order to select leaf elements for an action
-            */
-           const finalElements = uniqueElements.filter(element => {
-                for (const otherEl of uniqueElements) {
-                    if (element !== otherEl && (element as HTMLElement).contains(otherEl as HTMLElement)) return false;
-                }
-                return true;
-            });
 
             const elementMap = {};
             let index = 0;
@@ -192,42 +172,6 @@ export class DomService {
 
                 elementMap[index] = elementInfo;
 
-                // add highlighting if requested
-                if (opts.highlightElements && isVisible) {
-                    element.setAttribute('data-runtime-highlight', index.toString());
-                    
-                    const isFocused = index === opts.focusElement;
-                    const color = isFocused ? '#ff0000' : `hsl(${(index * 137) % 360}, 70%, 50%)`;
-                    const outlineWidth = isFocused ? '2px' : '1px';
-                    
-                    (element as HTMLElement).style.outline = `${outlineWidth} solid ${color}`;
-                    (element as HTMLElement).style.outlineOffset = '1px';
-                    (element as HTMLElement).style.boxShadow = `0 0 0 1px ${color}`;
-                    
-                    // add index label with lower z-index to ensure overlay can cover it
-                    const label = document.createElement('div');
-                    label.textContent = index.toString();
-                    label.style.cssText = `
-                        position: absolute;
-                        top: ${rect.top + window.scrollY - 20}px;
-                        left: ${rect.left + window.scrollX}px;
-                        background: ${color};
-                        color: white;
-                        padding: 1px 4px;
-                        border-radius: 3px;
-                        font-size: 11px;
-                        font-weight: bold;
-                        z-index: 10000;
-                        pointer-events: none;
-                        font-family: monospace;
-                        line-height: 1;
-                        min-width: 16px;
-                        text-align: center;
-                    `;
-                    label.setAttribute('data-runtime-highlight', `label-${index}`);
-                    document.body.appendChild(label);
-                }
-
                 index++;
             });
 
@@ -251,22 +195,6 @@ export class DomService {
         }, { highlightElements, maxElements, includeHidden, focusElement });
 
         return result;
-    }
-
-    // remove highlights
-    async removeHighlights() {
-        await this.page.evaluate(() => {
-            document.querySelectorAll('[data-runtime-highlight]').forEach(el => {
-                if (el.getAttribute('data-runtime-highlight')?.startsWith('label-')) {
-                    el.remove();
-                } else {
-                    el.removeAttribute('data-runtime-highlight');
-                    (el as HTMLElement).style.removeProperty('outline');
-                    (el as HTMLElement).style.removeProperty('outline-offset');
-                    (el as HTMLElement).style.removeProperty('box-shadow');
-                }
-            });
-        });
     }
 
     // click element by index
@@ -316,31 +244,174 @@ export class DomService {
         return { success: true, message: `Clicked element ${index} and navigated` };
     }
 
-    // get accessibility tree snapshot
-    async getAccessibilityTree() {
-        try {
-            const snapshot = await this.page.accessibility.snapshot({ interestingOnly: true });
+    // new
+    async clickElement({targetIndex, elements}: { targetIndex: number, elements: any[]}) {
+        const elInfo = elements.find(e => e.index === targetIndex);
+        if (!elInfo) throw new Error(`Element with index ${targetIndex} not found`);
+      
+        const [nav, click] = await Promise.allSettled([
+          this.page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10_000 }),
+          this.page.evaluate(xp => {
+            const node = document.evaluate(
+              xp,
+              document,
+              null,
+              XPathResult.FIRST_ORDERED_NODE_TYPE,
+              null
+            ).singleNodeValue as HTMLElement | null;
+      
+            if (!node) throw new Error('Element not found by XPath');
+      
+            node.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      
+            if ((node as HTMLInputElement).type === 'file') {
+              return { isFileInput: true };
+            }
+      
+            node.click();
+            return { clicked: true };
+          }, elInfo.xpath)
+        ]);
+      
+        // special case: <input type="file">
+        if ((click as PromiseFulfilledResult<any>).value?.isFileInput) {
+          return { isFileInput: true, message: 'File input detected - use upload_file instead' };
+        }
+      
+        // navigation is optional
+        if (nav.status === 'rejected') {
+          return { success: true, message: `Clicked element ${targetIndex} (no navigation)` };
+        }
+      
+        return { success: true, message: `Clicked element ${targetIndex} and navigated` };
+    }
+
+    // new
+    async collectIntertiveElements() {
+        return await this.page.evaluate(() => {
+            const gather = (root: ParentNode, out: HTMLElement[] = []) => {
+                const sel = [
+                'a[href]:not([href=""])',
+                'button:not([disabled])',
+                'input:not([type=hidden]):not([disabled])',
+                'textarea:not([disabled])',
+                'select:not([disabled])',
+                '[role="button"]',
+                '[role="link"]',
+                '[role="textbox"]',
+                '[role="checkbox"]',
+                ].join(',');
+                root.querySelectorAll<HTMLElement>(sel).forEach(el => {
+                /* skip container elements that contain another candidate */
+                if (![...el.querySelectorAll(sel)].some(c => c !== el)) out.push(el);
+                });
+        
+                /* dive into any open shadow roots */
+                (root as any).querySelectorAll?.('*')?.forEach((n: any) => {
+                if (n.shadowRoot) gather(n.shadowRoot, out);
+                });
+                return out;
+            };
             
-            const flattenTree = (node: any, depth = 0, result: string[] = []) => {
-                if (node.role && node.name) {
-                    result.push(`${'  '.repeat(depth)}${node.role} ${node.name}`);
+            const trim = (t: string | null) => (t && t.trim() ? t.trim() : undefined);
+
+            /* use the ARIA algorithm to approximate accessible-name */
+            const accName = (el: HTMLElement) => {
+                const lbl = (el as any).ariaLabel || el.getAttribute?.('aria-label');
+                if (lbl) return trim(lbl);
+
+                const labelledBy = el.getAttribute?.('aria-labelledby');
+                if (labelledBy) {
+                    const txt = labelledBy
+                                .split(/\s+/)
+                                .map(id => document.getElementById(id)?.textContent ?? '')
+                                .join(' ')
+                    return trim(txt);
                 }
-                
-                if (node.children) {
-                    for (const child of node.children) {
-                        flattenTree(child, depth + 1, result);
-                    }
-                }
-                
-                return result;
+                    
+                return (
+                    trim(el.getAttribute?.('title')) ||
+                    trim((el as HTMLInputElement).placeholder) ||
+                    trim(el.textContent)
+                )
             };
 
-            const lines = flattenTree(snapshot);
-            return lines.join('\n');
-        } catch (error) {
-            return `Error getting accessibility tree: ${error.message}`;
-        }
+            const buildXPath = (el: Element): string => {
+                if (el.id) return `//*[@id="${el.id}"]`;
+                if (el === document.body) return '/html/body';
+                const sameTagSiblings = Array.from(el.parentNode!.children).filter(
+                sib => sib.tagName === el.tagName
+                );
+                const idx = sameTagSiblings.indexOf(el) + 1;
+                return buildXPath(el.parentNode as Element) + '/' + el.tagName.toLowerCase() + `[${idx}]`;
+            };
+
+            const result: any[] = [];
+            const leaves = gather(document);
+
+            leaves.forEach((el, i) => {
+                const name = accName(el);
+                if (!name) return;
+
+                result.push({
+                    index : i,
+                    tag   : el.tagName.toLowerCase(),
+                    accessibleName : name,
+                    href : el.tagName.toLowerCase() === 'a' ? (el as HTMLAnchorElement).href : "",
+                    xpath : buildXPath(el)
+                })
+            })
+
+            return result;
+        })
     }
+
+    // new
+    async typeTextByIndex(
+        targetIndex: number,
+        elements: Array<{ index: number; xpath: string }>,
+        text: string
+      ) {
+        const elInfo = elements.find(e => e.index === targetIndex);
+        if (!elInfo) throw new Error(`Element with index ${targetIndex} not found`);
+      
+        return await this.page.evaluate(
+          (xp, value) => {
+            const node = document.evaluate(
+              xp,
+              document,
+              null,
+              XPathResult.FIRST_ORDERED_NODE_TYPE,
+              null
+            ).singleNodeValue as HTMLElement | null;
+      
+            if (!node) throw new Error('Input element not found');
+      
+            node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            node.focus();
+      
+            if ('value' in node) {
+              (node as HTMLInputElement | HTMLTextAreaElement).value = value;
+            } else {
+              node.textContent = value;           // contenteditable, etc.
+            }
+      
+            node.dispatchEvent(new Event('input', { bubbles: true }));
+            node.dispatchEvent(new Event('change', { bubbles: true }));
+            return { success: true, inputText: value };
+          },
+          elInfo.xpath,
+          text
+        );
+    }
+
+    // new
+    async getInteractiveElements() {
+        const list = await this.collectIntertiveElements();
+        return list.slice(0, 10000);
+    }
+
+
 
     async getVisibleText(selector = 'body') {
         try {

@@ -29,8 +29,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         model = 'gemini-2.5-flash'
     } = opts;
 
-    console.log("queries", queries);
-
     /*
     ** shared memory across queries tasks
     */
@@ -116,7 +114,6 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         /*
         ** build a deterministic plan -> steps 
         */
-        console.log("🔍 SQ", qIdx, subQuery);
         while (!planDone && attempts < 5) {
             attempts++;
 
@@ -145,9 +142,8 @@ export async function runSequentialTask(opts: SeqRunOptions) {
             */
             for (let s = 0; s < steps.length; s++) {
                 const sentence = steps[s];
-                // console.log("📚 History context:", history);
 
-                const toolCall = await stepTranslator(sentence, history);
+                const toolCall = await stepTranslator(sentence, history, []);
 
                 if (!toolCall) {
                     opts.onError?.(`Translator failed at step ${s} of SQ${qIdx}`);

@@ -8,4 +8,5 @@ export interface SplitQueryResponse {
   dependencies?: { query_index: number, depends_on: number[] }[];
   researchFlags?: boolean[];
   reply?: string;
+  steps?: string[];
 }

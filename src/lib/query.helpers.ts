@@ -47,7 +47,6 @@ export function addPlanToTask({
         }
 
         if (action === "go_to_url") {
-            console.log("url", url);
             next.tabs = [...t.tabs, url]
         }
         return next;

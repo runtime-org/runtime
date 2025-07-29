@@ -18,6 +18,7 @@ import {
 import { runWorkflow } from '../../lib/workflow.runner';
 import { taskEventEmitter } from '../../lib/emitters';
 import puppeteer from 'puppeteer-core/lib/esm/puppeteer/puppeteer-core-browser.js';
+import { createPagePool } from '../../lib/page.manager';
 
 SessionView.propTypes = {
   browserInstance: PropTypes.object,
@@ -53,14 +54,8 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
   ** reattach if we lost the in memory handle
   */
   const reconnectIfNeeded = async (maxRetries = 3) => {
+
     if (browserInstance) return browserInstance;
-
-    const ws = getWsFor(currentBrowserPath);
-
-    if (!ws){
-      console.log("no ws found, relaunching browser");
-      return null;
-    }
 
     /*
     ** try to reconnect to the browser
@@ -75,6 +70,7 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
             browserWSEndpoint: ws,
             defaultViewport: null
           })
+
           setBrowserInstance(br);
           setIsConnected(true);
           return br;
@@ -155,34 +151,6 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
       handleInitialQuery();
     }
   }, [activeSessionId, messages.length, activeSession.title, isMessagesReady]);
-
-  /*
-  ** ensure sys message is the right one for taskId
-  */
-  function ensureSysMessage(clone, taskId, initialAction) {
-    let idx = clone.findIndex(
-      m =>
-        m.type === 'system' &&
-        Array.isArray(m.tasks) &&
-        m.tasks.some(t => t.taskId === taskId)
-    );
-
-    if (idx === -1) {
-      const newMsg = {
-        id: uuidv4(),
-        type: 'system',
-        text: '',
-        action: initialAction,
-        timestamp: new Date().toISOString(),
-        status: 'pending',
-        tasks: [{ taskId, tabs: [], plans: [] }],
-      };
-      clone.push(newMsg);
-      idx = clone.length - 1;
-    }
-
-    return idx;
-  }
 
   /*
   * handle workflow updates (create, update, complete "plan" of sub tasks)
@@ -293,7 +261,35 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
       taskEventEmitter.off('task_action_complete', handleActionDone);
       taskEventEmitter.off('task_action_error', handleActionDone); 
     };
-  }, [activeSessionId, isProcessing]);
+  }, [activeSessionId]); // removed isProcessing
+
+  /*
+  ** ensure sys message is the right one for taskId
+  */
+  function ensureSysMessage(clone, taskId, initialAction) {
+    let idx = clone.findIndex(
+      m =>
+        m.type === 'system' &&
+        Array.isArray(m.tasks) &&
+        m.tasks.some(t => t.taskId === taskId)
+    );
+
+    if (idx === -1) {
+      const newMsg = {
+        id: uuidv4(),
+        type: 'system',
+        text: '',
+        action: initialAction,
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+        tasks: [{ taskId, tabs: [], plans: [] }],
+      };
+      clone.push(newMsg);
+      idx = clone.length - 1;
+    }
+
+    return idx;
+  }
 
   /*
   * execute a query
@@ -312,6 +308,7 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
       console.log("historyDigest", historyDigest);
 
       const resp  = await splitQuery({query: rawText, history: historyDigest});
+      console.log("kind", resp.kind);
 
       if (resp.kind === "small_talk") {
         const { reply } = resp;
@@ -319,15 +316,13 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
         return;
       }
 
-      const { queries, dependencies, researchFlags } = resp;
-
       /*
       * run the workflow
       */
       let browser = browserInstance;
       if (!browser) {
         browser = await reconnectIfNeeded();
-        console.log("browser after reconnect", browser);
+        // console.log("browser after reconnect", browser);
       }
 
       if (!browser) {
@@ -340,11 +335,13 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
       }
 
       await runWorkflow({
+        mode: resp.kind,
         originalQuery: rawText,
         sessionId: activeSessionId,
-        queries,
-        dependencies,
-        researchFlags,
+        queries: resp.queries,
+        dependencies: resp.dependencies,
+        researchFlags: resp.researchFlags,
+        steps: resp.steps,
         browserInstance: browser,
         cancelRef,
         // onDone: (text) => addNewMessage({ type:'system', text }),
@@ -362,6 +359,16 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
   */
   const handleSubmit = async (text) => {
     if (!text.trim() || isProcessing) return;
+
+    // run puppeteer function to test, i will a function here
+    if (!browserInstance) {
+      browserInstance = await reconnectIfNeeded();
+    }
+
+    // use page manager
+    const pageManager = createPagePool({ browser: browserInstance });
+
+    const page = await pageManager();
 
     addNewMessage({ type:'user', text: text.trim() });
     executeQuery(text.trim());
@@ -392,8 +399,8 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
       <div className="flex-grow overflow-y-auto p-4 space-y-2 no-scrollbar pb-24">
         {messages.map(m =>
           m.type === 'user'
-            ? <User key={m.id}    message={m} />
-            : <System key={m.id}  message={m}
+            ? <User key={m.id} message={m} />
+            : <System key={m.id} message={m}
                       isError={m.isError}
                       isComplete={m.isComplete}
               />

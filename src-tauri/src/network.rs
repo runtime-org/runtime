@@ -165,7 +165,7 @@ pub async fn create_new_page(port: u16, url: Option<&str>) -> Result<String, Str
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {e}"))?;
 
-    let target_url = url.unwrap_or("about:blank");
+    let target_url = url.unwrap_or("");
     let new_page_url = format!("http://127.0.0.1:{port}/json/new?{target_url}");
 
     println!("creating new page: {new_page_url}");
