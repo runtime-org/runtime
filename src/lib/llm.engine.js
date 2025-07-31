@@ -65,8 +65,8 @@ export async function callLLM(props) {
             /*
             ** exponential backoff (1s, 2s, 4s, 8s, 16s)
             */
-            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-            await new Promise(resolve => setTimeout(resolve, delay));
+            // const delay = Math.min(10 * Math.pow(2, attempt - 1), 10000);
+            // await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
     

@@ -162,7 +162,6 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
     ** handle task updates
     */
     const handleTaskUpdate = ({ taskId, action, speakToUser, status, error}) => {
-
       setMessages(prev => {
         /* 
         ** create a new system message
@@ -198,6 +197,7 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
     ** starting the action (puppeteer or llm)
     */
     const handleActionStart = ({ taskId, action, speakToUser, status, actionId, url }) => {
+
       setMessages(prev => {
         const clone = [...prev];
 

@@ -234,5 +234,6 @@ pub async fn load_skills(
     repo: Option<String>, 
     branch: String
 ) -> Result<WebsiteSkills, String> {
+    println!("loading skills for domain: {}", domain);
     download_skill_json(domain.to_string(), company, repo, branch).await
 }

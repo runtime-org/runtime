@@ -5,7 +5,7 @@ import { createPagePool } from "./page.manager";
 import { runSequentialTask } from "./task.execution";
 import { emit } from "./task.execution.helpers";
 import { RunnerOptions } from "./workflow.schema";
-import { runBrowserAction } from "./legacy/task.browser.legacy";
+import { runBrowserAction } from "./task.browser";
 
 export async function runWorkflow(opts: RunnerOptions) {
   const { 
@@ -34,11 +34,10 @@ export async function runWorkflow(opts: RunnerOptions) {
     console.log("steps", steps);
     await runBrowserAction({
       taskId,
-      sessionId,
-      steps,
       originalQuery,
       pageManager,
       browserInstance,
+      steps
     });
   } else if (mode === "analysis") {
     /*

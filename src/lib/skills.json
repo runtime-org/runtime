@@ -1,0 +1,155 @@
+{
+  "websites": [
+    {
+      "domain": "amazon.com",
+      "skills": [
+        {
+          "name": "search_products",
+          "description": "Search Amazon for a product name and return the list items (title, price, link).",
+          "input":  { "text": "string" },
+          "output": "results",
+          "steps": [
+            { "action": "navigate_to_url", "url": "https://www.amazon.com" },
+            { "action": "wait_for_selector", "selector": "#twotabsearchtextbox" },
+            { "action": "click",              "selector": "#twotabsearchtextbox" },
+            { "action": "type",               "selector": "#twotabsearchtextbox", "input_key": "text" },
+            { "action": "press_enter" },
+            { "action": "wait_for_selector",  "selector": "div.s-search-results" },
+            {
+              "action":     "extract_list",
+              "selector":   "div[data-component-type='s-search-result']",
+              "output_key": "results"
+            }
+          ]
+        },
+        {
+          "name": "open_result_by_index",
+          "description": "Open the N-th search result from the current results page.",
+          "input":  { "index": "number" },
+          "output": "product_url",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "div[data-component-type='s-search-result']" },
+            {
+              "action":   "click_element_by_index",
+              "selector": "div[data-component-type='s-search-result'] h2 a",
+              "index":     0
+            },
+            { "action": "wait_for_selector", "selector": "#productTitle" },
+            { "action": "extract_fields",    "selector": "html", "output_key": "product_url" }
+          ]
+        },
+        {
+          "name": "extract_product_details",
+          "description": "On a product page, capture title, price & rating (no cart action).",
+          "output": "product_details",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "#productTitle" },
+            {
+              "action":     "extract_fields",
+              "selector":   "#productTitle, #priceblock_ourprice, #price_inside_buybox, #acrPopover",
+              "output_key": "product_details"
+            }
+          ]
+        },
+        {
+          "name": "add_current_product_to_cart",
+          "description": "Click “Add to Cart” on the current product page and return cart count.",
+          "output": "cart_status",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "#add-to-cart-button" },
+            { "action": "click",             "selector": "#add-to-cart-button" },
+            { "action": "wait_for_selector", "selector": "#nav-cart-count" },
+            {
+              "action":     "extract_fields",
+              "selector":   "#nav-cart-count",
+              "output_key": "cart_status"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "gmail.com",
+      "skills": [
+        {
+          "name": "search_emails",
+          "description": "Use the Gmail search bar to find messages and return the visible result rows (subject, sender, snippet, link).",
+          "input":  { "text": "string" },
+          "output": "email_results",
+          "steps": [
+            { "action": "navigate_to_url", "url": "https://mail.google.com" },
+            { "action": "wait_for_selector", "selector": "input[name='q']" },
+            { "action": "click",             "selector": "input[name='q']" },
+            { "action": "type",              "selector": "input[name='q']", "input_key": "text" },
+            { "action": "press_enter" },
+            { "action": "wait_for_selector", "selector": "tr.zA" },
+            {
+              "action":     "extract_list",
+              "selector":   "tr.zA",
+              "output_key": "email_results"
+            }
+          ]
+        },
+        {
+          "name": "open_email_by_index",
+          "description": "Open the N-th email in the current search / inbox view.",
+          "input":  { "index": "number" },
+          "output": "thread_url",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "tr.zA" },
+            {
+              "action":   "click_element_by_index",
+              "selector": "tr.zA",
+              "index":     0
+            },
+            { "action": "wait_for_selector", "selector": "h2.hP" },
+            {
+              "action":     "extract_fields",
+              "selector":   "html",
+              "output_key": "thread_url"
+            }
+          ]
+        },
+        {
+          "name": "extract_email_details",
+          "description": "Inside an open thread, capture subject, sender, date, and body snippet.",
+          "output": "email_details",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "h2.hP" },
+            {
+              "action":     "extract_fields",
+              "selector":   "h2.hP, span.gD, span.g3, div.a3s",
+              "output_key": "email_details"
+            }
+          ]
+        },
+        {
+          "name": "compose_and_send_email",
+          "description": "Compose a new email and send it.",
+          "input": {
+            "to":      "string",
+            "subject": "string",
+            "body":    "string"
+          },
+          "output": "send_status",
+          "steps": [
+            { "action": "wait_for_selector", "selector": ".T-I.T-I-KE.L3" },
+            { "action": "click",             "selector": ".T-I.T-I-KE.L3" },
+            { "action": "wait_for_selector", "selector": "textarea[name='to']" },
+            { "action": "type",              "selector": "textarea[name='to']",          "input_key": "to" },
+            { "action": "type",              "selector": "input[name='subjectbox']",     "input_key": "subject" },
+            { "action": "type",              "selector": "div[aria-label='Message Body']", "input_key": "body" },
+            { "action": "click",             "selector": "div[aria-label^='Send']" },
+            { "action": "wait_for_selector", "selector": "span.bAq" },
+            {
+              "action":     "extract_fields",
+              "selector":   "span.bAq",
+              "output_key": "send_status"
+            }
+          ]
+        }
+      ]
+    }
+    
+  ]
+}
