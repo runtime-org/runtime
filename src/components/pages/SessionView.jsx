@@ -30,6 +30,7 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
 
   const {
     sessions, 
+    runtimeMode,
     activeSessionId, 
     openHome,
     addMessageToSession, 
@@ -307,7 +308,7 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
       const historyDigest = buildHistoryDigest(fullHistory);
       console.log("historyDigest", historyDigest);
 
-      const resp  = await splitQuery({query: rawText, history: historyDigest});
+      const resp  = await splitQuery({query: rawText, history: historyDigest, runtimeMode});
       console.log("kind", resp.kind);
 
       if (resp.kind === "small_talk") {

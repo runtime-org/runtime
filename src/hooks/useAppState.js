@@ -12,6 +12,7 @@ export const useAppState = create(
             activeSessionId: null, // UUID or null
             currentQuery: "",
             availableBrowsers: [], // [{id, name, path}]
+            runtimeMode: "research", // "research" | "action"
 
             currentBrowserPath: null,
             browserPool: {}, // {[path]: wsEndpoint}
@@ -26,6 +27,7 @@ export const useAppState = create(
             ** query handling
             */
             setCurrentQuery: (query) => set({currentQuery: query}),
+            setRuntimeMode: (mode) => set({runtimeMode: mode}),
             /*
             ** view handling
             */
@@ -112,6 +114,7 @@ export const useAppState = create(
                 sessionMessages: state.sessionMessages,
                 browserPool: state.browserPool,
                 isConnected: state.isConnected,
+                runtimeMode: state.runtimeMode,
             }),
         }
     )

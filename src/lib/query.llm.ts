@@ -9,7 +9,7 @@ import { QUERY_FEW_SHOT } from "./query.fewshot";
 import { SplitQueryResponse } from "./query.schemas";
 
 
-export async function splitQuery({query, history}: {query: string, history: any[]}): Promise<SplitQueryResponse> {
+export async function splitQuery({query, history, runtimeMode}: {query: string, history: any[], runtimeMode: string}): Promise<SplitQueryResponse> {
     const analysisDate = new Date().toISOString().split('T')[0];
     const prompt_general = `
 ${history ? `### CONVERSATION HISTORY\n${history}` : ''}
@@ -110,9 +110,9 @@ Date: ${analysisDate}
 
 `;
 
-    const MODE = "browser_action"; // research or general or browser_action
+    const MODE = runtimeMode; // research or general or action
     const SYSTEM_CONFIG = {
-        browser_action: {
+        action: {
             prompt: prompt_browser_action,
             tools: [
                 SmallTalkDeclaration, 
