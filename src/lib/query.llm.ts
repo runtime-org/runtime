@@ -110,7 +110,7 @@ Date: ${analysisDate}
 
 `;
 
-    const MODE = "browser_action";
+    const MODE = "browser_action"; // research or general or browser_action
     const SYSTEM_CONFIG = {
         browser_action: {
             prompt: prompt_browser_action,

@@ -26,7 +26,8 @@ export type StepAction =
    | "extract_fields"
    | "navigate_back"
    | "click_element_by_index"
-   | "navigate_to_url";
+   | "navigate_to_url"
+   | "scroll_down";
 
 export interface ExecOps {
     taskId: string;
@@ -45,6 +46,8 @@ export interface SkillStep {
     input_key?: string;
     index?: number;
     output_key?: string;
+    schema?: Record<string, string>;
+    times?: number;
 }
 
 

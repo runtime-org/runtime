@@ -36,8 +36,8 @@
           "output": "product_url",
           "steps": [
             { "action": "navigate_to_url",      "url": "{{url_override}}" },
-            { "action": "wait_for_selector",    "selector": "#productTitle" },
-            { "action": "scroll_down",          "times": 1 }
+            { "action": "wait_for_selector",      "selector": "#productTitle" },
+            { "action": "extract_fields",         "selector": "html", "output_key": "product_url" }
           ]
         },
         {
@@ -48,8 +48,8 @@
             { "action": "wait_for_selector", "selector": "#productTitle" },
             {
               "action":     "extract_fields",
-              "selector":   "#productTitle, #corePriceDisplay_desktop_feature_div span#aok-offscreen, #averageCustomerReviews span#acrPopover",
-              "output_key": "product_details"
+              "selector":   "#productTitle, #priceblock_ourprice, #price_inside_buybox, #acrPopover",
+              "output_key": "product_url"
             }
           ]
         },
@@ -58,8 +58,8 @@
           "description": "Click “Add to Cart” on the current product page and return cart count.",
           "output": "cart_status",
           "steps": [
-            { "action": "wait_for_selector", "selector": "#addToCart_feature_div #add-to-cart-button" },
-            { "action": "click",             "selector": "#addToCart_feature_div #add-to-cart-button" },
+            { "action": "wait_for_selector", "selector": "#add-to-cart-button" },
+            { "action": "click",             "selector": "#add-to-cart-button" },
             { "action": "wait_for_selector", "selector": "#nav-cart-count" },
             {
               "action":     "extract_fields",

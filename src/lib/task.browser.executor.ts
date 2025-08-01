@@ -4,6 +4,16 @@ import { actionDesc, StepRunnerRegistry } from "./task.browser.runner";
 import { emit } from "./task.browser.helpers";
 // import { Browser } from "puppeteer-core/lib/esm/puppeteer/puppeteer-core-browser.js";
 
+function findValidUrl(list: any[]) {
+    // go through the list and find the first valid raw element
+    for (const item of list) {
+        if (item.link && item.link.startsWith("https://")) {
+            return item;
+        }
+    }
+    return undefined;
+}
+
 export async function executeMacroPlan({
     taskId,
     pageManager,
@@ -23,7 +33,7 @@ export async function executeMacroPlan({
             .find(s => s.name === step.skill);
 
         /*
-        **  build params map visible to a single skill page
+        ** build params map visible to a single skill page
         */
         const stepParams: Record<string, unknown> = {
             ...step.parameters,
@@ -32,8 +42,8 @@ export async function executeMacroPlan({
 
         if ("text" in stepParams) stepParams.text = stepParams.text as string;
         if ("number" in stepParams) stepParams.number = stepParams.number as number;
-
-        console.log("stepParams", stepParams);
+        if ("times" in stepParams) stepParams.times = stepParams.times as number;
+        console.log("---->", skillDef?.name);
 
         const planId = uuidv4();
         emit("task_action_start", {
@@ -47,6 +57,20 @@ export async function executeMacroPlan({
         /*
         ** run every low level step
         */
+        if (skillDef?.name === "open_result_by_index") {
+            const list = history.results as { link?: string; selector?: string }[] | undefined;
+            const idx = (stepParams.index ?? 0) as number;
+
+            if (list?.[idx]?.link) {
+                const element = findValidUrl(list);
+                stepParams.url_override = element?.link;
+                console.log("+++++>", element);
+            } else if (list?.[idx]?.selector) {
+                stepParams.selector_override = list[idx]!.selector; 
+            } else {
+                throw new Error(`Result list empty or index ${idx} missing`);
+            }
+        }
         for (const step of skillDef?.steps || []) {
             const actionId = uuidv4();
 
@@ -67,7 +91,7 @@ export async function executeMacroPlan({
                     params: stepParams,
                     browser
                 });
-                console.log("result", result);
+                console.log("------->", result);
 
                 if (step.output_key)  history[step.output_key] = (result as { success: true, data: unknown }).data;
 

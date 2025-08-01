@@ -59,6 +59,11 @@ export const StepRunnerRegistry: Record<SkillStep["action"], Runner> = {
   ** navigate to url
   */
   navigate_to_url: async (step, { page, params }) => runAtomicStep({ step, page, params }),
+
+  /*
+  ** handle scroll down
+  */
+  scroll_down: async (step, { page, params }) => runAtomicStep({ step, page, params }),
 };
 
 /**
@@ -76,7 +81,8 @@ export function actionDesc(action: SkillStep["action"]): string {
     extract_fields: "Extracts field data (like form values) from elements matching a selector",
     navigate_back: "Navigates back to the previous page in the browser history",
     click_element_by_index: "Clicks on a specific element from a list of elements, identified by index position",
-    navigate_to_url: "Navigates to a specific URL"
+    navigate_to_url: "Navigates to a specific URL",
+    scroll_down: "Scrolls down the page"
   };
 
   return descriptions[action] || `Unknown action: ${action}`;
@@ -96,7 +102,8 @@ export function getAllActionDescriptions(): Record<SkillStep["action"], string> 
     "extract_fields",
     "navigate_back",
     "click_element_by_index",
-    "navigate_to_url"
+    "navigate_to_url",
+    "scroll_down"
   ];
 
   return actions.reduce((acc, action) => {
