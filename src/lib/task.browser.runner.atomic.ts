@@ -26,7 +26,7 @@ export async function runAtomicStep(
             }
             case "type": {
                 const text = (params[step.input_key as string] ?? "") as string;
-                await page.type(step.selector!, text, { delay: 50 });
+                await page.type(step.selector!, text, { delay: 80 });
                 return { success: true, data: null };
             }
             case "press_enter": {

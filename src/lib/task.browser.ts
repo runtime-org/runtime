@@ -47,34 +47,14 @@ export async function runBrowserAction(opts: BrowserRunOptions) {
     console.log("domains", response_detect_website_intent);
     const domains = response_detect_website_intent;
 
+    const skill_maps = await new SkillRegistry().byDomains(domains)
 
-    /*
-    ** load the skill map
-    */
-    const payload_load_skill_map = {
-        taskId,
-        action: "load_skill_map",
-        status: "running",
-        speakToUser: "Loading the skill map for the websites you want to interact with, it won't take long. It is blazing fast."
-    }
-
-    const {
-        response: response_load_skill_map,
-        error: error_load_skill_map,
-        // actionId
-    } = await handler(
-        async () => await new SkillRegistry().byDomains(domains),
-        payload_load_skill_map
-    );
-
-    if (error_load_skill_map) return;
-
-    console.log("skillMap", response_load_skill_map);
+    console.log("skillMap", skill_maps);
 
     /*
     ** generate the skill plan
     */
-    const plan = await generateMacroPlan({sites: response_load_skill_map, query: originalQuery});
+    const plan = await generateMacroPlan({sites: skill_maps, query: originalQuery});
     console.log("plan", plan);
 
     /*
@@ -85,7 +65,7 @@ export async function runBrowserAction(opts: BrowserRunOptions) {
         browser: browserInstance,
         pageManager,
         plan,
-        skillMaps: response_load_skill_map
+        skillMaps: skill_maps
     });
 
     console.log("history", history);

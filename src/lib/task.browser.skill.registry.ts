@@ -40,13 +40,34 @@ export class SkillRegistry {
     // }
 
     private loadFromLocal(domain: string): WebsiteSkills {
-        const website = SKILLS.websites.find((w: any) => w.domain === domain);
+        const website = SKILLS.websites.find((w: any) => w.domain.includes(domain));
         if (!website) throw new Error(`No skills found for domain: ${domain}`);
 
         return {
-            domain: website.domain,
+            domain: website.domain[0],
             skills: website.skills as WebsiteSkills["skills"]
         };
+    }
+
+    private fuzzyMatch(targetDomain: string): WebsiteSkills | null {
+        if (this.sites.has(targetDomain)) {
+            return this.sites.get(targetDomain)!;
+        }
+
+        const getBaseDomain = (domain: string): string => {
+            const lastDotIndex = domain.lastIndexOf('.');
+            return lastDotIndex > 0 ? domain.substring(0, lastDotIndex) : domain;
+        };
+
+        const targetBase = getBaseDomain(targetDomain);
+
+        for (const [existingDomain, skills] of this.sites.entries()) {
+            const existingBase = getBaseDomain(existingDomain);
+            if (existingBase === targetBase) {
+                return skills;
+            }
+        }
+        return null;
     }
 
     /*
@@ -56,10 +77,11 @@ export class SkillRegistry {
         const sites: WebsiteSkills[] = [];
 
         for (const domain of domains) {
-
             try {
-                if (this.sites.has(domain)) {
-                    sites.push(this.sites.get(domain)!);
+                const existingSite = this.fuzzyMatch(domain);
+
+                if (existingSite) {
+                    sites.push(existingSite);
                 } else {
                     const skills = this.loadFromLocal(domain) as WebsiteSkills;
                     this.sites.set(domain, skills);

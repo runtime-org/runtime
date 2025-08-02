@@ -22,6 +22,7 @@ export async function generateMacroPlan({
     }): Promise<any> {
 
     const macroTool = buildMacroTool(sites);
+    console.log("macroTool", macroTool);
 
     const config = {
         temperature: 0.0,
@@ -72,6 +73,19 @@ User Request: "check my gmail, and see the latest drone received from dji, and t
 }
 `
 
+    // skills generator
+    const generateSkillsSection = (sites: WebsiteSkills[]): string => {
+        return sites.map(site => {
+            const skillsList = site.skills.map(skill => 
+                `- ${skill.name}: ${skill.description}`
+            ).join('\n');
+            
+            return `Skills of ${site.domain}:\n${skillsList}`;
+        }).join('\n\n');
+    };
+
+    const skillsSection = generateSkillsSection(sites);
+
     const prompt = `
 You are a plan generator for a browser automation task on specific websites.
 You will be given a list of skills and a user request. The skills are specific to the websites you are going to interact with. 
@@ -83,17 +97,7 @@ And each function has already some step for it execution, you don't need to worr
 Note: You should use the following tool to generate the skill pipeline: generate_skill_pipeline
 
 ## Skills
-Skills of amazon.com:
-- search_products: Search for a product on Amazon. this skill will take the user query as input, and perform the search on amazon.com and it will return the list of results of products.
-- open_result_by_index: Open the N-th search result from the current page. This skill will take the index of the result as input, and open the result page.
-- extract_product_details: Extract the details of the product from the current page. This skill will return the details of the product as output, for example: title, price, rating.
-- add_current_product_to_cart: Click "Add to cart" button. This skill will return the count of the products in the cart as output.
-
-Skills of gmail.com:
-- search_emails: Use Gmail search bar to find messages and return the visible result rows (subject, sender, snippet, link). This skill will take the user query as input, and perform the search on gmail.com and it will return the list of results of emails.
-- open_email_by_index: Open the N-th email in the current search / inbox view. This skill will take the index of the result as input, and open the result page.
-- extract_email_details: Inside an open thread, capture subject, sender, date, and body snippet of the email. This skill will return the details of the email as output.
-- compose_and_send_email: Compose and send an email. This skill will take the email details as input, and send the email.
+${skillsSection}
 
 ## Examples
 ${FEW_SHOTS}
@@ -103,12 +107,15 @@ User request: ${query}
 Plan as list of skills:
 `
 
+    console.log("prompt", prompt);
     const resp = await callLLM({
         modelId: "gemini-2.5-flash",
         contents: [{ role: "user", parts: [{ text: prompt } ] }],
         config,
         ignoreFnCallCheck: true
     });
+
+    console.log("resp", resp);
 
     const fn = getFnCall(resp);
     if (!fn?.args?.skills) throw new Error("Plan generation failed");

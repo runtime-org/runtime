@@ -35,7 +35,7 @@ export async function executeMacroPlan({
         /*
         ** build params map visible to a single skill page
         */
-        const stepParams: Record<string, unknown> = {
+        let stepParams: Record<string, unknown> = {
             ...step.parameters,
             ...history
         };
@@ -43,6 +43,12 @@ export async function executeMacroPlan({
         if ("text" in stepParams) stepParams.text = stepParams.text as string;
         if ("number" in stepParams) stepParams.number = stepParams.number as number;
         if ("times" in stepParams) stepParams.times = stepParams.times as number;
+        
+        /*
+        ** original text for splitting
+        */
+        const originalText = stepParams.text;
+
         console.log("---->", skillDef?.name);
 
         const planId = uuidv4();
@@ -83,6 +89,19 @@ export async function executeMacroPlan({
             });
 
             try {
+                /*
+                ** handle text splitting for split parameters
+                */
+                if (step.split && originalText && typeof originalText === "string") {
+                    const [title, body] = (originalText as string).split("<<<rt-space>>>", 2);
+                    
+                    if (step.split === "before") {
+                        stepParams.text = title.trim();
+                    } else if (step.split === "after") {
+                        stepParams.text = body?.trim() ?? "";
+                    }
+                }
+
                 /*
                 ** run the step
                 */

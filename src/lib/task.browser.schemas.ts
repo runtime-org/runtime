@@ -48,6 +48,7 @@ export interface SkillStep {
     output_key?: string;
     schema?: Record<string, string>;
     times?: number;
+    split?: "before" | "after";
 }
 
 

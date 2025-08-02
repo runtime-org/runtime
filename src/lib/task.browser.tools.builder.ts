@@ -16,10 +16,10 @@ export function buildMacroTool(
     return {
         name: "generate_skill_pipeline",
         description: `
-        Return an OBJECT with a single key "skills".
-        "skills" is an ordered ARRAY; each element invoke ONE skill.  
-        Allowed parameters key are "text" (STRING) and "number" (NUMBER).
-        Leave it empty {} when the skill has no input.
+Return an OBJECT with a single key "skills".
+"skills" is an ordered ARRAY; each element invoke ONE skill.  
+Allowed parameters key are "text" (STRING) and "number" (NUMBER).
+Leave it empty {} when the skill has no input.
         `,
         parameters: {
             type: Type.OBJECT,
