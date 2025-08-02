@@ -18,6 +18,7 @@ use crate::browser_manager::{
 use crate::utils::download_and_extract;
 use crate::skills::download_skill_json;
 use crate::sketchs_browser::WebsiteSkills;
+use crate::apps::call;
 
 #[tauri::command]
 pub async fn download_and_extract_resource(url: String) -> Result<String, String> {
@@ -236,4 +237,13 @@ pub async fn load_skills(
 ) -> Result<WebsiteSkills, String> {
     println!("loading skills for domain: {}", domain);
     download_skill_json(domain.to_string(), company, repo, branch).await
+}
+
+#[tauri::command]
+pub async fn call_app(func: String, args: Vec<String>) -> Result<String, String> {
+    // run the dispatcher ; map Ok() to () and Err() to String
+    let string_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    call(&func, &string_refs)
+        .map(|_| "OK".to_string())
+        .map_err(|e| e.to_string())
 }

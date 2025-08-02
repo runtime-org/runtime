@@ -155,7 +155,7 @@ Please return only the domain names, and do not include any additional text.
 
 Notes:
 - The user request may refer to one or more domains.
-- Sometimes, the user requestion may mention other website in the query, but the steps may not involve that website, so you should not mention those websites.
+- Sometimes, the user request may mention other websites in the query, but the steps may not involve that website, so you should not mention those websites.
 
 ${FEW_SHOTS}
 
