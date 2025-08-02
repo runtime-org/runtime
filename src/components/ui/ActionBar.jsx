@@ -3,8 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { TbThumbUp, TbThumbDown, TbCopy, TbPlus, TbRotateClockwise } from "react-icons/tb";
 import AppActionMenu from './AppActionMenu';
 import PropTypes from 'prop-types';
-
-
+import { mdToHtml } from '../../lib/utils';
 
 ActionBar.propTypes = {
   text: PropTypes.string,
@@ -72,7 +71,7 @@ export default function ActionBar({
         console.log('Adding to new note: ', text);
         await invoke('call_app', {
           func: 'create_note',
-          args: ['Note from Runtime', text]
+          args: ['Note from Runtime', mdToHtml(text)]
         });
       }
     },
@@ -96,7 +95,7 @@ export default function ActionBar({
         console.log('Adding to last note: ', text);
         await invoke('call_app', {
           func: 'append_note',
-          args: [text]
+          args: [mdToHtml(text)]
         });
       }
     }
