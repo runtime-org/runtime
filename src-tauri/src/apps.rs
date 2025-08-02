@@ -5,7 +5,6 @@ use crate::app_note::{append_note, create_note};
 /*
 ** app functions 
 */
-
 pub fn call(func: &str, args: &[&str]) -> Result<(), Box<dyn Error>> {
     match func {
         /*

@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
 
 import Construction from './Construction';
 import ParseText from './ParseText';
-import ActionIcons from './ActionIcons';
+import ActionBar from './ActionBar';
 
 System.propTypes = {
   message: PropTypes.object.isRequired,
@@ -74,7 +74,7 @@ export default function System({
               message.text && (
                 <>
                   <ParseText text={message.text} />
-                  <ActionIcons text={message.text} />
+                  <ActionBar text={message.text} />
                 </>
               )
             }
