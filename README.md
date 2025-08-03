@@ -39,9 +39,27 @@ node -v # depending on your OS, use https://nodejs.org/en
 rustc -V
 ```
 
-**Step 2:** Clone the Repository
+**Step 2:** Clone repository
+```bash
+git clone git@github.com:runtime-org/runtime.git
+cd runtime
+```
 
+**Step 3:** Gemini api-key setup
+Create .env file in the root folder and add the Gemini api-key as follow
+# ```bash
+# VITE_GEMINI_API_KEY=
+# ```
 
+**Step 4:** Install dependencies
+```bash
+npm install
+```
+
+**Step 5:** Run the app in dev mode
+```bash
+npm run tauri dev
+```
 
 # <!-- # runtime
 
