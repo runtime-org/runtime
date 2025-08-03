@@ -204,6 +204,8 @@ pub async fn launch_new_instance(
             // .arg("--disable-web-security")
             .arg("--disable-features=VizDisplayCompositor")
             // .arg("--ignore-certificate-errors")
+            .arg("--disable-background-networking")
+            .arg("--disable-default-apps")
             .arg("--allow-running-insecure-content");
     }
 
