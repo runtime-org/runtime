@@ -1,4 +1,4 @@
-<img src="./public/logo/logo_example.png" alt="Runtime" width="full"/>
+<img src="./public/logo/logo_example_2.png" alt="Runtime" width="full"/>
 
 <br/>
 
@@ -62,7 +62,7 @@ npm install
 npm run tauri dev
 ```
 
-# <!-- # runtime
+
 
 
 
