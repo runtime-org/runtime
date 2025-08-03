@@ -14,7 +14,11 @@
       {
         "title": "runtime",
         "width": 400,
-        "height": 700
+        "height": 700,
+        "resizable": true,
+        "minWidth": 400,
+        "maxWidth": 400,
+        "minHeight": 600
       }
     ],
     "security": {
@@ -30,6 +34,7 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": ["src/scripts/*.scpt"]
   }
 }

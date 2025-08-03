@@ -91,9 +91,10 @@ export const SummaryDeclaration = {
 export const PickLinksDeclaration = {
   name: "pick_links",
   description: `Given a list of interactive elements on the current page,
-return the indices that should be visited next in order
-to answer the sub-query.  Prefer elements whose href / text / aria-label
-semantically match the sub-query.`,
+return the indices that should be visited next in order to answer the sub-query. 
+Prefer elements whose href / text / aria-label semantically match the sub-query.
+
+The indices should be returned as an array of numbers using indices as the keys not pick_links`,
   parameters: {
     type: Type.OBJECT,
     properties: {

@@ -99,23 +99,36 @@ Return ONLY a generate_action_plan tool call with the "steps" array.
 /*
 ** translate the atomic web-browsing instruction into the proper tool invocation.
 */
-export async function stepTranslator(step: string, history: string[]): Promise<Record<string, any>> {
-    const prompt = `Translate the atomic web-browsing instruction below into the proper tool invocation.
+export async function stepTranslator(step: string, history: string[], ctx: any[]): Promise<Record<string, any>> {
+    let prompt = `Translate the atomic web-browsing micro-step instruction below into the proper tool invocation.
+
+You will be given a micro step instruction and you need to translate it into the proper tool invocation.
 
     Guidelines:
     - choose the single tool that accomplishes the action, taking prior tool usage in this conversation into account.
     - Output ONLY the call in the exact form of the tool invocation.
     - Do not add any explanatory text.
-    - Always use tool 'done' to return the final answer to the sub-query.
+    - Do not ask any clarification question to the user.`;
+
+    // Include page structure context if available
+    if (ctx && ctx.length > 0) {
+        prompt += `
+
+    Current Page Structure:
+    ${JSON.stringify(ctx, null, 2)}`;
+    }
+
+    prompt += `
 
     Instruction:
     ${step}
     `;
+
     const config = {
         temperature: 0.0,
         maxOutputTokens: 1000,
         mode: 'ANY',
-        tools: [{ functionDeclarations: [ActionDeclarations] }]
+        tools: [{ functionDeclarations: ActionDeclarations }]
     }
 
     const resp = await callLLM({ 
@@ -173,15 +186,16 @@ Respond ONLY with an evaluate_answer function call.
 export async function summarizeText({
     rawText, 
     query, 
-}: {rawText: string, query?: string}): Promise<{summary: string}> {
+    maxRetries = 7
+}: {rawText: string, query?: string, maxRetries?: number}): Promise<{summary: string}> {
     const prompt = `Raw visible text: ${truncate(rawText, 2000000)}\nSub-query: ${query}`;
     
     const summaryCall = await callLLM({
-        modelId: "gemini-2.5-flash",
+        modelId: "gemini-2.5-flash-lite",
         contents: [{ role: "user", parts: [ { text: prompt } ] }],
         config: {
             temperature: 0.0,
-            maxOutputTokens: 10096,
+            maxOutputTokens: 700000,
             mode: "ANY",
             tools: [{ functionDeclarations: [SummaryDeclaration] }]
         },
@@ -189,6 +203,23 @@ export async function summarizeText({
     });
 
     const fn = getFnCall(summaryCall);
+
+    if (!fn?.args?.summary) {
+        // check if summaryCall.candidates[0].content.parts[0].text is not empty
+        if (summaryCall?.candidates?.[0]?.content?.parts?.[0]?.text) {
+            return {
+                summary: summaryCall.candidates[0].content.parts[0].text
+            }
+        }
+        const retry = maxRetries - 1;
+        if (retry > 0) {
+            return await summarizeText({
+                rawText: rawText,
+                query: query,
+                maxRetries: retry
+            });
+        }
+    }
     return {
         summary: fn?.args?.summary ?? rawText,
     }

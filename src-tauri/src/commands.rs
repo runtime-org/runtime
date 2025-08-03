@@ -16,6 +16,9 @@ use crate::browser_manager::{
     sunset_browser_instance,
 };
 use crate::utils::download_and_extract;
+use crate::skills::download_skill_json;
+use crate::sketchs_browser::WebsiteSkills;
+use crate::apps::call;
 
 #[tauri::command]
 pub async fn download_and_extract_resource(url: String) -> Result<String, String> {
@@ -137,7 +140,7 @@ pub async fn launch_browser(browser_path: Option<String>) -> Result<String, Stri
 
     match launch_new_instance(&target_browser_path, port).await {
         Ok(ws_url) => {
-            let _ = create_new_page(port, Some("https://www.google.com")).await;
+            // let _ = create_new_page(port, Some("https://www.google.com")).await;
             Ok(ws_url)
         }
         Err(e) => Err(format!(
@@ -225,3 +228,22 @@ pub async fn debug_browser_connection(browser_path: String) -> Result<String, St
     Ok(debug_info.join("\n"))
 }
 
+#[tauri::command]
+pub async fn load_skills(
+    domain: &str, 
+    company: Option<String>, 
+    repo: Option<String>, 
+    branch: String
+) -> Result<WebsiteSkills, String> {
+    println!("loading skills for domain: {}", domain);
+    download_skill_json(domain.to_string(), company, repo, branch).await
+}
+
+#[tauri::command]
+pub async fn call_app(func: String, args: Vec<String>) -> Result<String, String> {
+    // run the dispatcher ; map Ok() to () and Err() to String
+    let string_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    call(&func, &string_refs)
+        .map(|_| "OK".to_string())
+        .map_err(|e| e.to_string())
+}

@@ -26,34 +26,34 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
             // ===== NAVIGATION =====
             case "search_google": {
                 const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(parameters.query)}`;
-                await pageInstance.goto(searchUrl, { waitUntil: 'networkidle0', timeout: 60000 });
+                await pageInstance.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
                 result = { success: true, data: { searchQuery: parameters.query, navigatedTo: searchUrl } };
                 if (logged) console.log(`🔍 Searched for "${parameters.query}" in Google`);
                 break;
             }
 
             case "go_to_url": {
-                await pageInstance.goto(parameters.url, { waitUntil: 'networkidle0' });
+                await pageInstance.goto(parameters.url, { waitUntil: 'networkidle2', timeout: 50000 });
                 result = { success: true, data: { navigatedTo: parameters.url } };
                 if (logged) console.log(`🔗 Navigated to ${parameters.url}`);
                 break;
             }
 
             case "go_back": {
-                await pageInstance.goBack({ waitUntil: 'networkidle0' });
+                await pageInstance.goBack({ waitUntil: 'networkidle2' });
                 result = { success: true, data: { action: 'navigated back' } };
                 if (logged) console.log("🔙 Navigated back");
                 break;
             }
 
             case "go_forward": {
-                await pageInstance.goForward({ waitUntil: 'networkidle0' });
+                await pageInstance.goForward({ waitUntil: 'networkidle2' });
                 result = { success: true, data: { action: 'navigated forward' } };
                 if (logged) console.log("⏭️ Navigated forward");
                 break;
             }
             case "refresh_page": {
-                await pageInstance.reload({ waitUntil: 'networkidle0' });
+                await pageInstance.reload({ waitUntil: 'networkidle2' });
                 result = { success: true, data: { action: 'page refreshed' } };
                 if (logged) console.log("🔄 Page refreshed");
                 break;
@@ -68,8 +68,10 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
             }
             // ===== ELEMENT INTERACTION =====
             case "click_element_by_index": {
-                const clickableElements = await domService.getClickableElementsWithIndices({ highlightElements: false });
-                const clickResult = await domService.clickElementByIndex(parameters.index, clickableElements.elementMap);
+                // const clickableElements = await domService.getClickableElementsWithIndices({ highlightElements: false });
+                // const clickResult = await domService.clickElementByIndex(parameters.index, clickableElements.elementMap);
+                const elements = await domService.collectIntertiveElements();
+                const clickResult = await domService.clickElement({ targetIndex: parameters.index, elements });
                 
                 if (clickResult.isFileInput) {
                     result = { success: false, error: clickResult.message, data: null };
@@ -80,38 +82,28 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 break;
             } 
             case "input_text": {
-                const inputElements = await domService.getClickableElementsWithIndices({ highlightElements: false });
-                if (!inputElements.elementMap[parameters.index]) {
-                    throw new Error(`Element with index ${parameters.index} not found`);
+                try {
+                    const elements = await domService.collectIntertiveElements();
+                    const inputResult = await domService.typeTextByIndex(parameters.index, elements, parameters.text);
+
+                    result = { success: true, data: inputResult };
+                    if (logged) console.log(`⌨️ Input text into element ${parameters.index}`);
+                } catch (error) {
+                    result = { success: false, error: error.message, data: null };
+                    if (logged) console.log(`❌ Error inputting text: ${error.message}`);
                 }
-
-                const inputElement = inputElements.elementMap[parameters.index];
-                const inputResult = await pageInstance.evaluate((xpath, text) => {
-                    const element = document.evaluate(
-                        xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null
-                    ).singleNodeValue;
-                    
-                    if (!element) {
-                        throw new Error('Input element not found');
-                    }
-
-                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    element.focus();
-                    element.value = text;
-                    element.dispatchEvent(new Event('input', { bubbles: true }));
-                    element.dispatchEvent(new Event('change', { bubbles: true }));
-                    
-                    return { success: true, inputText: text };
-                }, inputElement.xpath, parameters.text);
-
-                result = { success: true, data: inputResult };
-                if (logged) console.log(`⌨️ Input text into element ${parameters.index}`);
                 break;
             }
             case "send_keys": {
-                await pageInstance.keyboard.press(parameters.keys);
-                result = { success: true, data: { keys: parameters.keys } };
-                if (logged) console.log(`⌨️ Sent keys: ${parameters.keys}`);
+                try {
+                    const elements = await domService.collectIntertiveElements();
+                    const inputResult = await domService.typeTextByIndex(parameters.index, elements, parameters.keys);
+                    result = { success: true, data: inputResult };
+                    if (logged) console.log(`⌨️ Sent keys: ${parameters.keys}`);
+                } catch (error) {
+                    result = { success: false, error: error.message, data: null };
+                    if (logged) console.log(`❌ Error sending keys: ${error.message}`);
+                }                
                 break;
             }
             // ===== SCROLLING =====
@@ -156,159 +148,6 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 break;
             }
 
-            // ===== DROPDOWN OPERATIONS =====
-            case "get_dropdown_options": {
-                const dropdownElements = await domService.getClickableElementsWithIndices({ highlightElements: false });
-                const dropdown = dropdownElements.elementMap[parameters.index];
-                
-                if (!dropdown || dropdown.tagName !== 'select') {
-                    throw new Error(`Element at index ${parameters.index} is not a select dropdown`);
-                }
-
-                const options = await pageInstance.evaluate((xpath) => {
-                    const select = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-                    if (!select) return [];
-                    
-                    return Array.from(select.options).map((opt, index) => ({
-                        index,
-                        text: opt.text,
-                        value: opt.value
-                    }));
-                }, dropdown.xpath);
-
-                result = { success: true, data: { options } };
-                if (logged) console.log(`📋 Found ${options.length} options in dropdown`);
-                break;
-            }
-
-            case "select_dropdown_option": {
-                const selectElements = await domService.getClickableElementsWithIndices({ highlightElements: false });
-                const selectElement = selectElements.elementMap[parameters.index];
-                
-                if (!selectElement || selectElement.tagName !== 'select') {
-                    throw new Error(`Element at index ${parameters.index} is not a select dropdown`);
-                }
-
-                const selectResult = await pageInstance.evaluate((xpath, optionText) => {
-                    const select = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-                    if (!select) throw new Error('Select element not found');
-                    
-                    const option = Array.from(select.options).find(opt => opt.text === optionText);
-                    if (!option) {
-                        return { success: false, error: `Option "${optionText}" not found` };
-                    }
-                    
-                    select.value = option.value;
-                    select.dispatchEvent(new Event('change', { bubbles: true }));
-                    return { success: true, selectedText: optionText, selectedValue: option.value };
-                }, selectElement.xpath, parameters.text);
-
-                result = selectResult;
-                if (logged) console.log(`📋 Selected option: ${parameters.text}`);
-                break;
-            }
-
-            // ===== DRAG AND DROP =====
-            case "drag_drop": {
-                let sourceX, sourceY, targetX, targetY;
-                
-                if (parameters.source_index !== undefined) {
-                    const elements = await domService.getClickableElementsWithIndices({ highlightElements: false });
-                    const sourceEl = elements.elementMap[parameters.source_index];
-                    if (!sourceEl) throw new Error(`Source element ${parameters.source_index} not found`);
-                    sourceX = sourceEl.rect.x + sourceEl.rect.width / 2;
-                    sourceY = sourceEl.rect.y + sourceEl.rect.height / 2;
-                } else {
-                    sourceX = parameters.source_x;
-                    sourceY = parameters.source_y;
-                }
-
-                if (parameters.target_index !== undefined) {
-                    const elements = await domService.getClickableElementsWithIndices({ highlightElements: false });
-                    const targetEl = elements.elementMap[parameters.target_index];
-                    if (!targetEl) throw new Error(`Target element ${parameters.target_index} not found`);
-                    targetX = targetEl.rect.x + targetEl.rect.width / 2;
-                    targetY = targetEl.rect.y + targetEl.rect.height / 2;
-                } else {
-                    targetX = parameters.target_x;
-                    targetY = parameters.target_y;
-                }
-
-                await pageInstance.mouse.move(sourceX, sourceY);
-                await pageInstance.mouse.down();
-                
-                const steps = parameters.steps || 10;
-                const delay = parameters.delay_ms || 50;
-                
-                for (let i = 0; i <= steps; i++) {
-                    const x = sourceX + (targetX - sourceX) * (i / steps);
-                    const y = sourceY + (targetY - sourceY) * (i / steps);
-                    await pageInstance.mouse.move(x, y);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                }
-                
-                await pageInstance.mouse.up();
-                
-                result = { success: true, data: { draggedFrom: { x: sourceX, y: sourceY }, draggedTo: { x: targetX, y: targetY } } };
-                if (logged) console.log(`🫳 Drag and drop completed`);
-                break;
-            }
-
-            // ===== TAB MANAGEMENT =====
-            case "switch_tab": {
-                if (!browserInstance) throw new Error("Browser instance not available");
-                const pages = await browserInstance.pages();
-                const targetPage = pages[parameters.page_id];
-                if (!targetPage) throw new Error(`Tab ${parameters.page_id} not found`);
-                
-                await targetPage.bringToFront();
-                result = { success: true, data: { switchedTo: parameters.page_id, url: targetPage.url() } };
-                if (logged) console.log(`🔄 Switched to tab ${parameters.page_id}`);
-                break;
-            }
-
-            case "open_tab": {
-                if (!browserInstance) throw new Error("Browser instance not available");
-                const newPage = await browserInstance.newPage();
-                await newPage.goto(parameters.url, { waitUntil: 'networkidle0' });
-                const pages2 = await browserInstance.pages();
-                const newTabIndex = pages2.length - 1;
-                
-                result = { success: true, data: { newTabIndex, url: parameters.url } };
-                if (logged) console.log(`🔗 Opened new tab with ${parameters.url}`);
-                break;
-            }
-
-            case "get_all_tabs": {
-                if (!browserInstance) throw new Error("Browser instance not available");
-                const allPages = await browserInstance.pages();
-                const tabs = allPages.map((p, i) => ({ id: i, url: p.url(), title: p.title() ? p.title() : "" }));
-                result = { success: true, data: { tabs } };
-                if (logged) console.log(`🔗 Retrieved all tabs`);
-                break;
-            }
-
-            case "get_current_tab": {
-                if (!browserInstance) throw new Error("Browser instance not available");
-                const for_pages = await browserInstance.pages();
-                const currentTab = for_pages.findIndex(p => p === pageInstance);
-                result = { success: true, data: { currentTab } };
-                if (logged) console.log(`🔗 Retrieved current tab`);
-                break;
-            }
-
-            case "close_tab": {
-                if (!browserInstance) throw new Error("Browser instance not available");
-                const pagesBeforeClose = await browserInstance.pages();
-                const pageToClose = pagesBeforeClose[parameters.page_id];
-                if (!pageToClose) throw new Error(`Tab ${parameters.page_id} not found`);
-                
-                await pageToClose.close();
-                result = { success: true, data: { closedTab: parameters.page_id } };
-                if (logged) console.log(`❌ Closed tab ${parameters.page_id}`);
-                break;
-            }
-
             case "get_visible_text": {
                 const visibleText = await domService.getVisibleText();
                 result = { success: true, data: { visibleText } };
@@ -318,14 +157,32 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
 
             // ===== PAGE STATE =====
             case "get_simplified_page_context": {
-                let screenshot = null;
+
+                const elements = await domService.getInteractiveElements();
+                console.log("elements", elements);
+
+                const rawContext = {
+                    interactiveElements: elements.map(e => ({
+                        index : e.index,
+                        tag : e.tag,
+                        accessibleName : e.accessibleName,
+                        href : e.href
+                    })),
+                    totalElements : elements.length,
+                };
+
+                result = { success: true, data: rawContext };
+                break;
+            }
+
+            case "get_simplified_page_context_legacy": {
                 let browserState;
 
                 try {
                     // apply highlights
                     browserState = await domService.getClickableElementsWithIndices({
                         highlightElements: false,
-                        maxElements: parameters.max_elements || 50,
+                        maxElements: parameters.max_elements || 100,
                         focusElement: parameters.focus_element_for_screenshot
                     });
                     // highlights are now on the page with z-index: 10000
@@ -340,7 +197,6 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                     }
                 } finally {
                     // remove highlights after the delay
-                    await domService.removeHighlights();
                 }
 
                 // if browserState was not populated due to an error before its assignment
@@ -348,7 +204,7 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                     // fallback: get elements without highlighting if the primary path failed
                     browserState = await domService.getClickableElementsWithIndices({
                         highlightElements: false,
-                        maxElements: parameters.max_elements || 50
+                        maxElements: parameters.max_elements || 100
                     });
                 }
 
@@ -375,38 +231,6 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 break;
             }
 
-            case "save_pdf": {
-                const filename = parameters.filename || `page-${Date.now()}.pdf`;
-                await pageInstance.pdf({
-                    path: filename,
-                    format: parameters.format || 'A4',
-                    printBackground: false
-                });
-                result = { success: true, data: { savedAs: filename } };
-                if (logged) console.log(`💾 PDF saved as ${filename}`);
-                break;
-            }
-
-            // ===== FILE OPERATIONS =====
-            case "upload_file": {
-                const fileElements = await domService.getClickableElementsWithIndices({ highlightElements: false });
-                const fileElement = fileElements.elementMap[parameters.index];
-                
-                if (!fileElement || fileElement.attributes.type !== 'file') {
-                    throw new Error(`Element at index ${parameters.index} is not a file input`);
-                }
-
-                const fileInput = await pageInstance.$(fileElement.xpath.replace('//*[@id="', '#').replace('"]', ''));
-                if (!fileInput) {
-                    throw new Error('File input element not found');
-                }
-
-                await fileInput.uploadFile(parameters.file_path);
-                result = { success: true, data: { uploadedFile: parameters.file_path } };
-                if (logged) console.log(`📁 Uploaded file: ${parameters.file_path}`);
-                break;
-            }
-
             // ===== RUNTIME CONTROL =====
             case "ask_user": {
                 result = { 
@@ -420,17 +244,6 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 break;
             }
 
-            case "execute_javascript": {
-                const jsResult = await pageInstance.evaluate(parameters.script);
-                result = { success: true, data: { result: jsResult } };
-                if (logged) console.log(`⚙️ Executed JavaScript`);
-                break;
-            }
-            // ===== FALLBACK =====
-            default:
-                result = { success: false, error: `Unsupported action: ${action}`, data: null };
-                break;
-
             // ===== OVERLAY =====
             case 'show_mesh_overlay': {
                 await domService.showMeshOverlay(pageInstance);
@@ -442,6 +255,11 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
                 result = { success:true, data:null };
                 break;
             }
+
+            // ===== FALLBACK =====
+            default:
+                result = { success: false, error: `Unsupported action: ${action}`, data: null };
+                break;
         }
 
     } catch (error) {
@@ -450,7 +268,6 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
         
         // Attempt cleanup if error occurs
         try {
-            await domService.removeHighlights();
             if (logged) console.log(`🧹 Emergency cleanup completed after error`);
         } catch (cleanupError) {
             if (logged) console.log(`⚠️ Cleanup error: ${cleanupError.message}`);

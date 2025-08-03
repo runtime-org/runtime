@@ -18,27 +18,38 @@ Return one synthesize_results tool call.
 Important:
 - Please format your response using markdown formatting (for example, use '#' for headings, '**word**' for bold, and ' *' for bullet points).
 - Always use bullet points to enhance clarity and readability, unless the answer consists of a single sentence. Avoid presenting answers as a block of sentences; instead, use bullet points for better organization.
+  But always start with a sentence.
 - Limit each paragraph to a maximum of two sentences, but always prefer to use bullet points to enhance clarity and readability.
 - Do not mention any tools unless they are directly relevant to the user's question.
 - If there is missing information or a knowledge gap, provide the best possible answer based on the information available.
 `;
 
-console.log("synthesisPrompt", synthesisPrompt);
+  console.log("synthesisPrompt", synthesisPrompt);
 
-  const synthResp = await callLLM({
-    modelId: model,
-    contents: [{ role: "user", parts: [{ text: synthesisPrompt }] }],
-    config: {
-      temperature: 0.2,
-      maxOutputTokens: 4096,
-      mode: "ANY",
-      tools: [{ functionDeclarations: SynthesisDeclaration }]
-    }, 
-    ignoreFnCallCheck: true
-  });
+  let synthFn: any = null;
+  let attempt = 0;
+  const maxTries = 2;
 
-  const synthFn = getFnCall(synthResp);
-  console.log("synthFn", synthFn);
+  while (attempt < maxTries && !synthFn?.args?.synthesized_answer) {
+    attempt++;
+    console.log(`Synthesis attempt ${attempt}/${maxTries}`);
+
+    const synthResp = await callLLM({
+      modelId: model,
+      contents: [{ role: "user", parts: [{ text: synthesisPrompt }] }],
+      config: {
+        temperature: attempt === 1 ? 0.2 : 0.3,
+        maxOutputTokens: 8192,
+        mode: "ANY",
+        tools: [{ functionDeclarations: SynthesisDeclaration }]
+      }, 
+      ignoreFnCallCheck: true
+    });
+
+    synthFn = getFnCall(synthResp);
+    console.log(`synthFn (attempt ${attempt})`, synthFn);
+  }
+
   const finalAnswer =
     synthFn?.args?.synthesized_answer ||
     synthFn?.args?.summary ||

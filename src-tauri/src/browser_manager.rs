@@ -201,20 +201,20 @@ pub async fn launch_new_instance(
 
     if is_dev {
         command
-            .arg("--disable-web-security")
+            // .arg("--disable-web-security")
             .arg("--disable-features=VizDisplayCompositor")
-            .arg("--ignore-certificate-errors")
+            // .arg("--ignore-certificate-errors")
             .arg("--allow-running-insecure-content");
     }
 
     /*
     ** nice visual cue in dev, blank tab in prod
     */
-    command.arg(if is_dev {
-        "https://www.google.com"
-    } else {
-        "about:blank"
-    });
+    // command.arg(if is_dev {
+    //     "https://www.google.com"
+    // } else {
+    //     "about:blank"
+    // });
 
     let mut child_process = command
         .stdout(Stdio::piped())
