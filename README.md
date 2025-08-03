@@ -1,4 +1,4 @@
-<img src="./public/logo/logo_example_2.png" alt="Runtime" width="full"/>
+<img src="./public/logo/logo_example_1.png" alt="Runtime" width="full"/>
 
 <br/>
 
