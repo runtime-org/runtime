@@ -75,4 +75,4 @@ Mile: milemitrovic888@gmail.com |  <small>[LinkedIn](https://www.linkedin.com/in
 
 More information about Runtime will be available on our website soon.
 
-<p align="left"><<a href="#readme-top">back to top</a>></p>
+<p align="right"><<a href="#readme-top">Back to top</a>></p>
