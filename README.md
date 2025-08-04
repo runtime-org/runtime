@@ -7,17 +7,19 @@
 
 
 <!-- ABOUT THE PROJECT -->
-## About The Project
-Runtime is a game-changer for both personal and professional browsing experiences. This solution provides full control over your browsers based on user queries, enabling information searches and actionable tasks directly within your browser. Additionally, Runtime integrates with note-based apps, ensuring all your important information is automatically organized and accessible.
+## About Runtime
+Runtime is a tool for acting with browsers and connecting to note-based apps
+<!-- Runtime is a game-changer for both personal and professional browsing experiences. This solution provides full control over your browsers based on user queries, enabling information searches and actionable tasks directly within your browser. Additionally, Runtime integrates with note-based apps, ensuring all your important information is automatically organized and accessible. -->
 
 Key Advantages:
 - **Custom Browser Support:** Runtime allows you to use your favorite browsers, eliminating the need to re-login to sites or handle authentication challenges.
-- **Search and Actions:** easily search for information within your chosen browser by following each step of retrieving, and perform actions such as checking emails, adding products to your cart, scheduling meetings on your calendar, and more. (Additional functionalities are planned for future updates)
+- **Search and Actions:** easily search for information within your chosen browser by following each step of retrieving, and perform actions such as checking emails, adding products to your cart, scheduling meetings on your calendar, and more.
 - **Integration with Note-Based Apps:** Runtime automatically saves and organizes all retrieved information into your preferred note-based applications. 
 
-Curent Support:
+<!-- Curent Support:
 - **Browser:** Google Chrome and Microsoft Edge. Other browsers will be supported in a future release. 
 - **Note-Based Apps:** Notion and Mac Notes. Other note-based apps will be supported in a future release.
+(Additional functionalities are planned for future updates) -->
 
 ## Demo
 <video src="https://github.com/user-attachments/assets/56bc7080-f2e3-4367-af22-6bf2245ff6cb" controls="controls">Your browser does not support playing this video!</video>
