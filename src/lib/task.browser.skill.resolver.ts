@@ -115,8 +115,6 @@ Plan as list of skills:
         ignoreFnCallCheck: true
     });
 
-    console.log("resp", resp);
-
     const fn = getFnCall(resp);
     if (!fn?.args?.skills) throw new Error("Plan generation failed");
 
@@ -161,8 +159,15 @@ Your task is to identify the domains of the websites that the user intends to in
 Please return only the domain names, and do not include any additional text.
 
 Notes:
-- The user request may refer to one or more domains.
-- Sometimes, the user request may mention other websites in the query, but the steps may not involve that website, so you should not mention those websites.
+- If the user wants to interact with a website, return the main domain of that website.
+    - For example, if the user mentions mail, return the mail domain.
+    - If the user mentions slack, return the Slack domain.
+    - If the user mentions mail, return the Gmail domain.
+    - If the user mentions amazon, return the Amazon domain.
+    - And so on for other websites.
+- Only include domains that are actually involved in the steps. Do not list domains just because they are mentioned in the user request.
+- The user request might involve one or more domains.
+- If a website is mentioned in the user request but is not part of the steps, do not include its domain.
 
 ${FEW_SHOTS}
 
@@ -186,6 +191,7 @@ Domains:
     });
 
     const fn = getFnCall(resp);
+    console.log("fn", fn, resp);
 
     if (!fn?.args?.domains) throw new Error("Domain detection failed");
     return fn.args.domains as string[];
