@@ -1,5 +1,5 @@
 
-import { emit, detectDomains } from "./task.browser.helpers";
+import { emit, detectDomains, serializeResult } from "./task.browser.helpers";
 import { 
     BrowserRunOptions
 } from "./task.browser.schemas";
@@ -8,6 +8,9 @@ import { SkillRegistry } from "./task.browser.skill.registry";
 import { handler } from "./task.helpers";
 import { generateMacroPlan } from "./task.browser.skill.resolver";
 import { executeMacroPlan } from "./task.browser.executor";
+import { synthesizeResultsBrowsing } from "./task.execution.llm";
+import { v4 as uuidv4 } from 'uuid';
+import { useAppState } from "../hooks/useAppState";
 
 /*
 ** run a browser task
@@ -20,6 +23,8 @@ export async function runBrowserAction(opts: BrowserRunOptions) {
         pageManager, 
         steps
     } = opts;
+
+    const { setSynthesisInProgress } = useAppState.getState();
 
     const currentPage = await pageManager();
 
@@ -71,17 +76,51 @@ export async function runBrowserAction(opts: BrowserRunOptions) {
     console.log("history", history);
 
     /*
+    ** flatten the history
+    */
+    const serializedResults = Object
+        .entries(history)
+        .map(([k, v]) => serializeResult(k, v));
+    console.log("serializedResults", serializedResults);
+
+    /*
+    ** synthesize the result
+    */
+    const synthesizeId = uuidv4();
+    emit("task_action_start", {
+        taskId,
+        action: "synthesize_results_browsing",
+        status: "running",
+        speakToUser: "Reasoning about the results",
+        actionId: synthesizeId
+    });
+
+    setSynthesisInProgress(taskId, true);
+
+    const finalResult = await synthesizeResultsBrowsing(
+        originalQuery, 
+        serializedResults, 
+        "gemini-2.5-flash"
+    );
+
+    setSynthesisInProgress(taskId, false);
+
+    emit("task_action_complete", {
+        taskId,
+        action: "synthesize_results_browsing",
+        status: "success",
+        speakToUser: "Reasoning about the results",
+        actionId: synthesizeId
+    });
+
+    /*
     ** update the workflow
     */
     emit("workflow_update", {
         taskId,
         action: "done",
         status: "completed",
-        speakToUser: "Task completed",
+        speakToUser: finalResult,
         error: null
     });
-
-
-
-
 }

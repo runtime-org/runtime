@@ -74,3 +74,39 @@ export async function detectDomains({query, steps}: {query: string, steps: strin
     
     throw new Error("Domain detection failed after all retry attempts");
 }
+
+/*
+** serialize the results
+*/
+export function serializeResult(k: string, v: unknown): string {
+    if (v == null) return `[${k}] no data`;
+  
+    /*
+    ** primitives
+    */
+    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean")
+      return `[${k}] ${String(v)}`;
+  
+    /*
+    ** array of objects
+    */
+    if (Array.isArray(v) && v.every(item => typeof item === "object")) {
+      return `[${k}] (${v.length} items)\n` +
+        v.map((o, i) => `  • ${i}: ${JSON.stringify(o)}`).join("\n");
+    }
+  
+    /*
+    ** generic array
+    */
+    if (Array.isArray(v))
+      return `[${k}] [${v.join(", ")}]`;
+  
+    /*
+    ** plain object
+    */
+    if (typeof v === "object")
+      return `[${k}] ${JSON.stringify(v)}`;
+  
+    return `[${k}] [unserializable]`;
+  }
+  

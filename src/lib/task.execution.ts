@@ -32,8 +32,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
     } = opts;
 
     const { 
-        setSynthesisInProgress, 
-        getSynthesisInProgress,
+        setSynthesisInProgress
     } = useAppState.getState();
 
     /*
