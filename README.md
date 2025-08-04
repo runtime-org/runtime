@@ -8,13 +8,13 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About Runtime
-Runtime is a tool for acting with browsers and connecting to note-based apps
+Runtime is a LLM-agentic tool for acting with your favorite browsers and connecting to prefered note-based apps
 <!-- Runtime is a game-changer for both personal and professional browsing experiences. This solution provides full control over your browsers based on user queries, enabling information searches and actionable tasks directly within your browser. Additionally, Runtime integrates with note-based apps, ensuring all your important information is automatically organized and accessible. -->
 
-Key Advantages:
+<!-- Key Advantages:
 - **Custom Browser Support:** Runtime allows you to use your favorite browsers, eliminating the need to re-login to sites or handle authentication challenges.
 - **Search and Actions:** easily search for information within your chosen browser by following each step of retrieving, and perform actions such as checking emails, adding products to your cart, scheduling meetings on your calendar, and more.
-- **Integration with Note-Based Apps:** Runtime automatically saves and organizes all retrieved information into your preferred note-based applications. 
+- **Integration with Note-Based Apps:** Runtime automatically saves and organizes all retrieved information into your preferred note-based applications.  -->
 
 <!-- Curent Support:
 - **Browser:** Google Chrome and Microsoft Edge. Other browsers will be supported in a future release. 
