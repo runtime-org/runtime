@@ -13,6 +13,7 @@ export const useAppState = create(
             currentQuery: "",
             availableBrowsers: [], // [{id, name, path}]
             runtimeMode: "research", // "research" | "action"
+            synthesisInProgress: {},
 
             currentBrowserPath: null,
             browserPool: {}, // {[path]: wsEndpoint}
@@ -28,6 +29,13 @@ export const useAppState = create(
             */
             setCurrentQuery: (query) => set({currentQuery: query}),
             setRuntimeMode: (mode) => set({runtimeMode: mode}),
+            setSynthesisInProgress: (taskId, inProgress) => set(state => ({
+                synthesisInProgress: {
+                    ...state.synthesisInProgress,
+                    [taskId]: inProgress
+                }
+            })),
+            getSynthesisInProgress: (taskId) => get().synthesisInProgress[taskId] || false,
             /*
             ** view handling
             */
@@ -115,6 +123,7 @@ export const useAppState = create(
                 browserPool: state.browserPool,
                 isConnected: state.isConnected,
                 runtimeMode: state.runtimeMode,
+                synthesisInProgress: state.synthesisInProgress,
             }),
         }
     )

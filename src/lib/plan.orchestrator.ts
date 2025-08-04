@@ -188,7 +188,11 @@ export async function summarizeText({
     query, 
     maxRetries = 7
 }: {rawText: string, query?: string, maxRetries?: number}): Promise<{summary: string}> {
-    const prompt = `Raw visible text: ${truncate(rawText, 2000000)}\nSub-query: ${query}`;
+    const prompt = `You are a helpful assistant that summarizes text. Please use the "general_summarize_text" tool to summarize the text.
+Raw visible text: ${truncate(rawText, 2000000)}
+Sub-query: ${query}
+Please summarize in bullet points.
+`;
     
     const summaryCall = await callLLM({
         modelId: "gemini-2.5-flash-lite",
@@ -203,24 +207,46 @@ export async function summarizeText({
     });
 
     const fn = getFnCall(summaryCall);
+    console.log("fn", fn);
+    console.log("summaryCall", summaryCall);
 
-    if (!fn?.args?.summary) {
-        // check if summaryCall.candidates[0].content.parts[0].text is not empty
-        if (summaryCall?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            return {
-                summary: summaryCall.candidates[0].content.parts[0].text
-            }
-        }
-        const retry = maxRetries - 1;
-        if (retry > 0) {
-            return await summarizeText({
-                rawText: rawText,
-                query: query,
-                maxRetries: retry
-            });
-        }
+    /*
+    ** normal check
+    */
+    if (fn?.args?.summary) {
+        return {
+            summary: fn.args.summary
+        };
     }
+
+    /*
+    ** fallback check
+    */
+    const textContent = summaryCall?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (textContent && textContent.trim()) {
+        console.log("Using fallback text content for summary");
+        return {
+            summary: textContent.trim()
+        };
+    }
+
+    /*
+    ** retry or return fallback
+    */
+    const retry = maxRetries - 1;
+    if (retry > 0) {
+        console.log(`Summary extraction failed, retrying (${retry} attempts left)`);
+        return await summarizeText({
+            rawText: rawText,
+            query: query,
+            maxRetries: retry
+        });
+    }
+
+    /*
+    ** final fallback
+    */
     return {
-        summary: fn?.args?.summary ?? rawText,
-    }
+        summary: truncate(rawText, 1000)
+    };
 }

@@ -4,7 +4,15 @@ import { isRetryableError, isFunctionCall } from './llm.engine.helper.js';
 
 // default support gemini
 export async function callLLM(props) {
-    const { modelId, contents, config = {}, maxRetries = 3, maxFnCallRetries = 5, ignoreFnCallCheck = false } = props;
+    const { 
+        modelId, 
+        contents, 
+        config = {}, 
+        maxRetries = 3, 
+        maxFnCallRetries = 5, 
+        ignoreFnCallCheck = false,
+        stream = false 
+    } = props;
 
     /*
     ** get the api key and get the genAI instance
@@ -31,7 +39,8 @@ export async function callLLM(props) {
             const response = await genAI.models.generateContent({
                 model: modelId,
                 contents: convertedContents, 
-                config: config
+                config: config,
+                stream: stream
             });
 
             /*
