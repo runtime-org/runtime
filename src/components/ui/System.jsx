@@ -7,6 +7,7 @@ import PropTypes from 'prop-types';
 import Construction from './Construction';
 import ParseText from './ParseText';
 import ActionBar from './ActionBar';
+import { useAppState } from '../../hooks/useAppState';
 
 System.propTypes = {
   message: PropTypes.object.isRequired,
@@ -22,6 +23,14 @@ export default function System({
   requiresUserInput = false
 }) {
   const [activeTab, setActiveTab] = useState('plan');
+  const { getSynthesisInProgress } = useAppState();
+  
+  /*
+  ** check if synthesis is in progress for any task in this message
+  */
+  const synthesisInProgress = message.tasks?.some(task => 
+    getSynthesisInProgress(task.taskId)
+  ) || false;
 
   const handleTabClick = (tab) => {
     setActiveTab(tab);
@@ -71,11 +80,36 @@ export default function System({
           {/* Back to simple text display */}
           <div className="mt-3 relative">
             {
+              synthesisInProgress ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="w-full max-w-md flex flex-col gap-2 animate-pulse">
+                    <div className="relative h-3 bg-gray-700/40 rounded-full overflow-hidden">
+                      <div 
+                        className="absolute top-0 left-0 h-full w-1/2 rounded-full animate-progress-mesh"
+                        style={{ '--delay': '0s' }}
+                      ></div>
+                    </div>
+                    <div className="relative h-3 w-[95%] bg-gray-700/20 rounded-full overflow-hidden">
+                      <div 
+                        className="absolute top-0 left-0 h-full w-1/2 rounded-full animate-progress-mesh"
+                        style={{ '--delay': '0.2s' }}
+                      ></div>
+                    </div>
+                    <div className="relative h-3 w-[90%] bg-gray-700/20 rounded-full overflow-hidden">
+                      <div 
+                        className="absolute top-0 left-0 h-full w-1/2 rounded-full animate-progress-mesh"
+                        style={{ '--delay': '0.4s' }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
               message.text && (
                 <>
                   <ParseText text={message.text} />
                   <ActionBar text={message.text} />
                 </>
+              )
               )
             }
             

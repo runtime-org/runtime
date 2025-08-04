@@ -44,6 +44,31 @@
   to { height: 100%; }
 }
 
+@keyframes progress-mesh {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+.animate-progress-mesh {
+  animation: progress-mesh 4s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    transparent 15%,
+    rgba(59, 130, 246, 0.1) 20%, 
+    rgba(59, 130, 246, 0.2) 35%, 
+    rgba(59, 130, 246, 0.3) 50%, 
+    rgba(59, 130, 246, 0.2) 65%, 
+    rgba(59, 130, 246, 0.1) 80%, 
+    transparent 85%,
+    transparent 100%
+  );
+}
+
 /* media queries */
 @media (prefers-color-scheme: dark) {
   :root {

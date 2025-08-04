@@ -37,6 +37,7 @@ Important:
     const synthResp = await callLLM({
       modelId: model,
       contents: [{ role: "user", parts: [{ text: synthesisPrompt }] }],
+      stream: true,
       config: {
         temperature: attempt === 1 ? 0.2 : 0.3,
         maxOutputTokens: 8192,
@@ -47,7 +48,8 @@ Important:
     });
 
     synthFn = getFnCall(synthResp);
-    console.log(`synthFn (attempt ${attempt})`, synthFn);
+    console.log("synthFn", synthFn);
+
   }
 
   const finalAnswer =

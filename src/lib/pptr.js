@@ -159,17 +159,23 @@ export const handlePuppeteerAction = async ({actionDetails, browserInstance, cur
             case "get_simplified_page_context": {
 
                 const elements = await domService.getInteractiveElements();
-                console.log("elements", elements);
+                // console.log("elements", elements);
+
+                const filteredElements = elements.filter(e => 
+                    e.href !== "" && 
+                    !e.href.includes("google.com/search?")
+                );
 
                 const rawContext = {
-                    interactiveElements: elements.map(e => ({
+                    interactiveElements: filteredElements.map(e => ({
                         index : e.index,
                         tag : e.tag,
                         accessibleName : e.accessibleName,
                         href : e.href
                     })),
-                    totalElements : elements.length,
+                    totalElements : filteredElements.length,
                 };
+                console.log("rawContext", rawContext);
 
                 result = { success: true, data: rawContext };
                 break;
