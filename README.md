@@ -64,10 +64,10 @@ npm run tauri dev
 ```
 
 ### License
-This project is licensed under the GNU General Public License version 3 (GPLv3). See `LICENSE` file for more details.
+Runtime is licensed under the GNU General Public License version 3 (GPLv3). See `LICENSE` file for more details.
 
 ### Contact
-For collaboration, contribution or any questions regarding this project, you can contact us as follows:
+For collaboration, contribution or any questions regarding Runtime, you can contact us as follows:
 
 Bayang: bayangp0@gmail.com |  <small>[LinkedIn](https://www.linkedin.com/in/bayangmbemounmo/)</small>
 
