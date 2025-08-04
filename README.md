@@ -67,15 +67,17 @@ npm run tauri dev
 <p align="right"><<a href="#readme-top">back to top</a>></p>
 
 ### License
-Runtime is distributed under the <> . See `LICENSE.txt` for more information.
+This project is licensed under the GNU General Public License version 3 (GPLv3). See `LICENSE.txt` for more information.
 
 <p align="right"><<a href="#readme-top">back to top</a>></p>
 
 ### Contact
 For collaboration, contribution or any questions regarding this project, you can contact us as follows:
 
-Bayen: X -> @Bayang_BM | <small>[LinkedIn](https://www.linkedin.com/in/bayangmbemounmo/)</small>
+Bayang: bayangp0@gmail.com |  <small>[LinkedIn](https://www.linkedin.com/in/bayangmbemounmo/)</small>
 
-Mile - Telegram -> @mile888ml | <small>[LinkedIn](https://www.linkedin.com/in/mile-mitrovic/)</small>
+Mile: milemitrovic888@gmail.com |  <small>[LinkedIn](https://www.linkedin.com/in/mile-mitrovic/)</small>
+
+More information about Runtime will be available on our website soon.
 
 <p align="right"><<a href="#readme-top">back to top</a>></p>
