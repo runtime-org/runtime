@@ -19,10 +19,9 @@ Curent Support:
 - **Browser:** Google Chrome and Microsoft Edge. Other browsers will be supported in a future release. 
 - **Note-Based Apps:** Notion and Mac Notes. Other note-based apps will be supported in a future release.
 
-### Demo
+## Demo
 <video src="https://github.com/user-attachments/assets/56bc7080-f2e3-4367-af22-6bf2245ff6cb" controls="controls">Your browser does not support playing this video!</video>
 
-<p align="right"><<a href="#readme-top">back to top</a>></p>
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -62,12 +61,8 @@ npm install
 npm run tauri dev
 ```
 
-<p align="right"><<a href="#readme-top">back to top</a>></p>
-
 ### License
 This project is licensed under the GNU General Public License version 3 (GPLv3). See `LICENSE` file for more details.
-
-<p align="right"><<a href="#readme-top">back to top</a>></p>
 
 ### Contact
 For collaboration, contribution or any questions regarding this project, you can contact us as follows:
@@ -78,4 +73,4 @@ Mile: milemitrovic888@gmail.com |  <small>[LinkedIn](https://www.linkedin.com/in
 
 More information about Runtime will be available on our website soon.
 
-<p align="right"><<a href="#readme-top">back to top</a>></p>
+<p align="left"><<a href="#readme-top">back to top</a>></p>
