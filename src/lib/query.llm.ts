@@ -93,7 +93,8 @@ ${history ? `### CONVERSATION HISTORY\n${history}` : ''}
 User: "${query}"
 
 ### TOOL SELECTION GUIDE
-Choose the appropriate tool based on the user's query:
+Choose the appropriate tool based on the user's query. But most of the time, use the 'browser_action' tool, because user could ask
+to find information in a non-chatty way.
 
 **Use 'small_talk_response' when:**
 - User is making polite conversation, asking for jokes, or requesting simple factual information
@@ -126,7 +127,7 @@ Date: ${analysisDate}
                 SmallTalkDeclaration
             ]
         },
-        general: {
+        general: { // we will use this later
             prompt: prompt_general,
             tools: [
                 QueryAnalysisDeclaration, 
@@ -138,6 +139,7 @@ Date: ${analysisDate}
     
     // tool declaration based on the mode choses
     const TOOLS = SYSTEM_CONFIG[MODE].tools;
+    
     /*
     ** config setup
     */
@@ -162,7 +164,7 @@ Date: ${analysisDate}
     });
 
     /*
-    ** get function call
+    ** get function call data
     */
     const call = getFnCall(response);
     if (!call) return { 

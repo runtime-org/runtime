@@ -84,10 +84,16 @@
             { "action": "click",             "selector": "input[name='q']" },
             { "action": "type",              "selector": "input[name='q']", "input_key": "text" },
             { "action": "press_enter" },
-            { "action": "wait_for_selector", "selector": "tr.zA" },
+            { "action": "wait_for_selector", "selector": "tr.zA[role='row'] span.il, td.TC" },
             {
-              "action":     "extract_list",
-              "selector":   "tr.zA",
+              "action":   "extract_list",
+              "selector": "div[role='main'] tr.zA[role='row']",
+              "schema": {
+                "sender":   "span.yP::text",
+                "subject":  "span.bog::text",
+                "snippet":  "span.y2::text",
+                "link":     "a::href"
+              },
               "output_key": "email_results"
             }
           ]
@@ -98,16 +104,16 @@
           "input":  { "index": "number" },
           "output": "thread_url",
           "steps": [
-            { "action": "wait_for_selector", "selector": "tr.zA" },
+            { "action": "wait_for_selector", "selector": "div[role='main'] tr.zA[role='row']" },
             {
-              "action":   "click_element_by_index",
-              "selector": "tr.zA",
-              "index":     0
+              "action": "click_element_by_index",
+              "selector": "div[role='main'] tr.zA[role='row']",
+              "index": 0
             },
             { "action": "wait_for_selector", "selector": "h2.hP" },
             {
-              "action":     "extract_fields",
-              "selector":   "html",
+              "action": "extract_fields",
+              "selector": "link[rel='canonical']::href",
               "output_key": "thread_url"
             }
           ]

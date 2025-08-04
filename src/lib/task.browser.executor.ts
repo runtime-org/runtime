@@ -49,8 +49,6 @@ export async function executeMacroPlan({
         */
         const originalText = stepParams.text;
 
-        console.log("---->", skillDef?.name);
-
         const planId = uuidv4();
         emit("task_action_start", {
             taskId,
@@ -70,7 +68,7 @@ export async function executeMacroPlan({
             if (list?.[idx]?.link) {
                 const element = findValidUrl(list);
                 stepParams.url_override = element?.link;
-                console.log("+++++>", element);
+                // console.log("+++++>", element);
             } else if (list?.[idx]?.selector) {
                 stepParams.selector_override = list[idx]!.selector; 
             } else {
@@ -105,12 +103,21 @@ export async function executeMacroPlan({
                 /*
                 ** run the step
                 */
+                /*
+                ** in case use the current url is https://mail.google.com, then split the query and join using OR
+                */
+                if (step.action === "type" && stepParams.text) {
+                    const url = new URL(page.url());
+                    if (url.hostname === "mail.google.com") {
+                        stepParams.text = (stepParams.text as string).split(" ").join(" OR ");
+                    }
+                }
                 const result = await StepRunnerRegistry[step.action](step, { 
                     page, 
                     params: stepParams,
                     browser
                 });
-                console.log("------->", result);
+                console.log("------->", step.action, result);
 
                 if (step.output_key)  history[step.output_key] = (result as { success: true, data: unknown }).data;
 
