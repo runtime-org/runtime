@@ -105,10 +105,11 @@ export async function executeMacroPlan({
                 */
                 /*
                 ** in case use the current url is https://mail.google.com, then split the query and join using OR
+                ** and only add the OR if the step is type and the selector is input[name='q']
                 */
                 if (step.action === "type" && stepParams.text) {
                     const url = new URL(page.url());
-                    if (url.hostname === "mail.google.com") {
+                    if (url.hostname === "mail.google.com" && step.selector === "input[name='q']") {
                         stepParams.text = (stepParams.text as string).split(" ").join(" OR ");
                     }
                 }

@@ -38,3 +38,41 @@ export const SynthesisDeclaration = [
     }
 ];
 
+/*
+** synthesize results tool declaration
+*/
+export const SynthesisDeclarationBrowsing = [
+  {
+    name: 'synthesize_results_browsing',
+    description: `Synthesize multiple browsing results into a comprehensive final answer.
+    If certain information is not available, clearly state that there is no definite answer based on the information at hand.
+    Do not fabricate any information; only provide what has been found in bullet points.
+    Do not mention any tools unless they are directly relevant to the user's question.`,
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        synthesized_answer: {
+          type: Type.STRING,
+          description: 'The comprehensive, well-structured answer that combines all browsing findings in bullet points'
+        },
+        key_findings: {
+          type: Type.ARRAY,
+          description: 'List of key findings from the browsing task',
+          items: {
+            type: Type.STRING,
+            description: 'A key finding or insight'
+          }
+        },
+        confidence_level: {
+          type: Type.NUMBER,
+          description: 'Confidence level in the synthesis (0.0 to 1.0)'
+        },
+        gaps_or_limitations: {
+          type: Type.STRING,
+          description: 'Any gaps or limitations in the synthesized answer'
+        }
+      },
+      required: ['synthesized_answer', 'key_findings', 'confidence_level', 'gaps_or_limitations']
+    }
+  }
+];
