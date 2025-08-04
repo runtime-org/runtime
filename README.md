@@ -1,5 +1,5 @@
 <a id="readme-top"></a>
-<img src="./public/logo/logo_example_1.png" alt="Runtime" width="full"/>
+<img src="./public/logo/logo_runtime.png" alt="Runtime" width="full"/>
 
 <br/>
 
