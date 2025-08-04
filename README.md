@@ -3,7 +3,7 @@
 
 <br/>
 
-[![Discord](https://img.shields.io/discord/1303749220842340412?color=7289DA&label=Discord&logo=discord&logoColor=white)](https://discord.gg/GwrepSMJ)
+[![Discord](https://img.shields.io/discord/1298389425905991791?color=7289DA&label=Discord&logo=discord&logoColor=white)](https://discord.gg/GwrepSMJ)
 
 
 <!-- ABOUT THE PROJECT -->
