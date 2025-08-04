@@ -3,9 +3,7 @@
 
 <br/>
 
-[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![Discord](https://img.shields.io/discord/1303749220842340412?color=7289DA&label=Discord&logo=discord&logoColor=white)](https://discord.gg/GwrepSMJ)
 
 
 <!-- ABOUT THE PROJECT -->
@@ -67,7 +65,7 @@ npm run tauri dev
 <p align="right"><<a href="#readme-top">back to top</a>></p>
 
 ### License
-This project is licensed under the GNU General Public License version 3 (GPLv3). See `LICENSE.txt` for more information.
+This project is licensed under the GNU General Public License version 3 (GPLv3). See `LICENSE` file for more details.
 
 <p align="right"><<a href="#readme-top">back to top</a>></p>
 
