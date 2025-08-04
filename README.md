@@ -48,7 +48,7 @@ cd runtime
 
 **Step 3:** Gemini api-key setup
 
-Create .env file in the root folder and add the Gemini api-key as follow
+- Create .env file in the root folder and add the Gemini api-key as follow
 ```bash
 VITE_GEMINI_API_KEY=
 ```
