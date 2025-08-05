@@ -25,56 +25,86 @@
 <div style="height:4px; background: #3C444D;"></div>
 <div style="height: 32px;"></div>
 
-<div align="center">
-  <video src="https://github.com/runtime-org/resources/raw/refs/heads/main/demos/runtime.mp4" controls width="90%">
-    Your browser does not support playing this video.
-  </video>
-</div>
+Demo: showing Runtime is 3x faster than Comet. To learn more about our technic, please see our [skills method](/SKILLS.md).
+![runtime demo](https://github.com/runtime-org/resources/blob/main/demos/runtime.gif?raw=true)
 
 
 ---
+<details> 
+<summary> What is our skills method? </summary>
 
-## Why Runtime?
+Previous AI browser agents (such as Comet, Dia, Genspark, browser-use, or browserbase) rely heavily on the DOM at execution time and manipulate it using heuristic methods. This approach makes processing requests slow.
 
-* **Deterministic Skills** – Hand-crafted action recipes for popular sites (Amazon, Gmail, Google, Notion, …) give repeatable and reliable outcomes.  
-* **Your Session, Your Browser** – Human-like actions run in *your* logged-in session; no separate profile or re-authentication hoops.
-* **Two Modes**  
-  * **Research** – Gather, rank and cite sources.  
-  * **Browse** – Execute multi-step tasks (triage email, fill carts, schedule meetings, etc.).  
-* **One-Click Export** – Ship everything straight to Notion or Apple Notes.  
-* **Open Ecosystem** – Build your own skills; we provide a lightweight SDK.
+We took a different approach: instead of manipulating the DOM at runtime/render-time, we use the tag attributes present in the DOM after the initial rendering by Blink. These attributes serve as gateways to locate elements such as `button`, `a`, `div`, `span`, and others.
 
-> **TL;DR:** Keep your current workflow, gain an LLM side-kick that acts predictably.
+We call these "skills." Every website has a set of predefined actions that a human can perform. For example, on amazon.com, the basic functions a user might perform include:  
+ - searching for products, 
+ - reading product information (such as title, price, discount, delivery time, rating, comments, etc.), 
+ - adding items to the cart, 
+ - viewing the cart, 
+ - tracking deliveries, 
+ - and more.
+
+By leveraging predefined skills instead of interacting with the live DOM, we achieve significant speed improvements. This approach also removes the need for the LLM to reason about which button to click or which element to hover over. 
+
+Important: While we recognize that this method is not infinitely scalable, we have developed a solution to address scalability challenges and will be sharing more details soon. Follow us for updates!
+
+A single skills of amazon.* are:
+
+```json
+{
+    "name": "search_products",
+    "description": "Search for a product on Amazon. this skill will take the user query as input, and perform the search on amazon.com and it will return the list of results of products.",
+    "input":  { "text": "string" },
+    "output": "results",
+    "steps": [
+    { "action": "navigate_to_url", "url": "https://www.amazon.com" },
+    { "action": "wait_for_selector", "selector": "#twotabsearchtextbox" },
+    { "action": "click",              "selector": "#twotabsearchtextbox" },
+    { "action": "type",               "selector": "#twotabsearchtextbox", "input_key": "text" },
+    { "action": "press_enter" },
+    { "action": "wait_for_selector",  "selector": "div[data-component-type='s-search-result'][data-asin]:not([data-asin=''])" },
+    { "action": "scroll_down",        "times": 3 },
+    {
+        "action":     "extract_list",
+        "selector":   "div[data-component-type='s-search-result'][data-asin]:not([data-asin=''])",
+        "schema": {
+        "asin": "@data-asin",
+        "title": "[data-cy='title-recipe'] a h2::text",
+        "price": "[data-cy='price-recipe'] .a-row [aria-describedby='price-link'] .a-price .a-offscreen::text",
+        "link": "[data-cy='title-recipe'] a::href"
+        },
+        "output_key": "results"
+    }
+    ]
+}
+```
+</details>
+
+
+----
+
+### Key Features
+
+- Reliable, hand-crafted action recipes for popular sites (Amazon, Gmail, Google, Notion, and more coming) ensure consistent results
+- Actions are performed in your own logged-in browser session—no need for separate profiles or repeated logins
+- Research mode: gather, rank, and cite sources efficiently in "tabs" tab.
+- Automate multi-step tasks like triaging email, reading and replying to mail.
+- Instantly send results to Apple Notes.
+
 
 ---
 
 ## What can Runtime do?
 
-### 1️⃣ “Can Runtime summarise a long article for me?”
-<video src="https://github.com/user-attachments/assets/demo-summary.mp4" controls>
-  Your browser does not support playing this video.
-</video>
+#### Search email, reply to an email?
+![gmail](https://github.com/runtime-org/resources/blob/main/demos/gmail.gif?raw=true)
 
----
+#### Search for notion, and summarize the content
+![notion](https://github.com/runtime-org/resources/blob/main/demos/notion.gif?raw=true)
 
-### 2️⃣ “Can it auto-fill checkout on Amazon?”
-<video src="https://github.com/user-attachments/assets/demo-amazon.mp4" controls>
-  Your browser does not support playing this video.
-</video>
-
----
-
-### 3️⃣ “Can it triage my Gmail inbox?”
-<video src="https://github.com/user-attachments/assets/demo-gmail.mp4" controls>
-  Your browser does not support playing this video.
-</video>
-
----
-
-### 4️⃣ “Can I export findings to Notion in one click?”
-<video src="https://github.com/user-attachments/assets/demo-notion.mp4" controls>
-  Your browser does not support playing this video.
-</video>
+#### Do research about vegan restaurant in Berlin
+![research](https://github.com/runtime-org/resources/blob/main/demos/research.gif?raw=true)
 
 ---
 
@@ -82,8 +112,7 @@
 
 ```bash
 # 1. Prerequisites
-brew install node rust       # or grab installers from nodejs.org & rust-lang.org
-node -v && rustc -V          # verify installs
+brew install node rust       # or from nodejs.org & rust-lang.org
 
 # 2. Clone
 git clone git@github.com:runtime-org/runtime.git
@@ -95,3 +124,9 @@ echo 'VITE_GEMINI_API_KEY=<your-key>' > .env
 # 4. Install & run
 npm install
 npm run tauri dev
+```
+
+---
+### Contributing
+
+If you want to contribute, you are welcome! Please open an issue or submit a PR if you want us to generate a skills for your website or web app.
