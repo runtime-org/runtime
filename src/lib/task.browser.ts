@@ -8,8 +8,8 @@ import { handler } from "./task.helpers";
 import { generateMacroPlan } from "./task.browser.skill.resolver";
 import { executeMacroPlan } from "./task.browser.executor";
 import { synthesizeResultsBrowsing } from "./task.execution.llm";
-import { v4 as uuidv4 } from 'uuid';
 import { useAppState } from "../hooks/useAppState";
+import { handlePuppeteerAction } from "./pptr";
 
 /*
 ** run a browser task
@@ -33,6 +33,13 @@ export async function runBrowserAction(opts: BrowserRunOptions) {
         status: "running",
         speakToUser: "Identifying the website you want to interact with, it will help me to understand your request better."
     }
+
+
+    await handlePuppeteerAction({
+        actionDetails:{ action:'show_mesh_overlay', parameters:{}, taskId:'ui_overlay' },
+        browserInstance, 
+        currentPage
+    });
 
     /*
     ** domain detection
@@ -114,6 +121,12 @@ export async function runBrowserAction(opts: BrowserRunOptions) {
         serializedResults,
         "gemini-2.5-flash"
     );
+
+    await handlePuppeteerAction({
+        actionDetails:{ action:'hide_mesh_overlay', parameters:{}, taskId:'ui_overlay' },
+        browserInstance, 
+        currentPage
+    });
 
     setSynthesisInProgress(taskId, false);
 
