@@ -269,6 +269,110 @@
           ]
         }
       ]
-    }    
+    },
+    {
+      "domain": ["x.com", "twitter.com"],
+      "skills": [
+        {
+          "name": "search_tweets",
+          "description": "Search X for tweets that match a query and return the visible results (user, text, link).",
+          "input": { "text": "string" },
+          "output": "results",
+          "steps": [
+            { "action": "navigate_to_url", "url": "https://x.com/explore" },
+            { "action": "wait_for_selector", "selector": "input[data-testid='SearchBox_Search_Input']" },
+            { "action": "click",             "selector": "input[data-testid='SearchBox_Search_Input']" },
+            { "action": "type",              "selector": "input[data-testid='SearchBox_Search_Input']", "input_key": "text" },
+            { "action": "press_enter" },
+            { "action": "wait_for_selector", "selector": "article[data-testid='tweet']" },
+            { "action": "scroll_down", "times": 10 },
+            { "action": "wait_for_selector", "selector": "div[data-testid='cellInnerDiv']:nth-of-type(2)" },
+            {
+              "action":   "extract_list",
+              "selector": "div[data-testid='cellInnerDiv']",
+              "schema": {
+                "user": "article a[role='link'] span::text",
+                "text": "article div[lang]::text",
+                "link": "article a[href*='/status/']::href"
+              },
+              "output_key": "results"
+            }
+          ]
+        },
+        {
+          "name": "read_home_feed",
+          "description": "Grab the first screenful of tweets from the Home timeline.",
+          "output": "results",
+          "steps": [
+            { "action": "navigate_to_url", "url": "https://x.com/home" },
+            { "action": "wait_for_selector", "selector": "article[data-testid='tweet']" },
+            { "action": "scroll_down", "times": 10 },
+            { "action": "wait_for_selector", "selector": "div[data-testid='cellInnerDiv']:nth-of-type(2)" },
+            {
+              "action":   "extract_list",
+              "selector": "article[data-testid='tweet']",
+              "schema": {
+                "user": "a[role='link'] span::text",
+                "text": "div[lang]::text",
+                "link": "a[href*='/status/']::href"
+              },
+              "output_key": "results"
+            }
+          ]
+        },
+        {
+          "name": "open_tweet_by_index",
+          "description": "Open the N-th tweet in the current list view (Home or Search).",
+          "input": { "index": "number" },
+          "steps": [
+            { "action": "wait_for_selector", "selector": "div[data-testid='cellInnerDiv']" },
+            {
+              "action": "click_element_by_index",
+              "selector": "div[data-testid='cellInnerDiv']",
+              "index": "0"
+            },
+            { "action": "wait_for_selector", "selector": "article[role='article'] time" }
+          ]
+        },
+        {
+          "name": "read_tweet_comments",
+          "description": "Collect the visible replies under the tweet that’s currently open (user, text, link).",
+          "output": "comment_results",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "div[aria-label='Timeline: Conversation'] div[data-testid='tweet']" },
+            {
+              "action":   "extract_list",
+              "selector": "div[aria-label='Timeline: Conversation'] div[data-testid='tweet']:not(:first-of-type)",
+              "schema": {
+                "user": "a[role='link'] span::text",
+                "text": "div[lang]::text",
+                "link": "a[href*='/status/']::href"
+              },
+              "output_key": "comment_results"
+            }
+          ]
+        },
+        {
+          "name": "reply_to_current_tweet",
+          "description": "Reply to the tweet currently open in the viewer.",
+          "input": { "text": "string" },
+          "output": "reply_status",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "div[data-testid='reply']" },
+            { "action": "click",             "selector": "div[data-testid='reply']" },
+            { "action": "wait_for_selector", "selector": "div[role='dialog'] div[role='textbox']" },
+            { "action": "type",              "selector": "div[role='dialog'] div[role='textbox']", "input_key": "text" },
+            { "action": "click",             "selector": "div[role='dialog'] div[data-testid='tweetButton']" },
+            { "action": "wait_for_selector", "selector": "div[role='alert']" },
+            {
+              "action":   "extract_fields",
+              "selector": "div[role='alert']::text",
+              "output_key": "reply_status"
+            }
+          ]
+        }
+      ]
+    }
+      
   ]
 }
