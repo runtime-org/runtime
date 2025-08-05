@@ -15,10 +15,12 @@ const reg = new SkillRegistry();
 */
 export async function generateMacroPlan({
         sites,
-        query
+        query,
+        context
     }: {
         sites: WebsiteSkills[],
-        query: string
+        query: string,
+        context: Record<string, unknown>
     }): Promise<any> {
 
     const macroTool = buildMacroTool(sites);
@@ -94,6 +96,8 @@ You must generate a plan that will fully satisfy the user request.
 If the user request involves multiple websites, you will be provided a list of skills for each website.
 And each function has already some step for it execution, you don't need to worry about the steps, just focus on the successfull execution of the functions/skills.
 
+When a skill needs to produce free-form text (e.g. "reply_current_email", "type" into a chat box, etc.) **write the text in clear, polite, grammatically-correct English.**  Address the recipient by name when it is known, and reflect the intent of the user request rather than quoting it.
+
 Note: You should use the following tool to generate the skill pipeline: generate_skill_pipeline
 
 ## Skills
@@ -114,6 +118,8 @@ Plan as list of skills:
         config,
         ignoreFnCallCheck: true
     });
+
+    console.log("resp", resp);
 
     const fn = getFnCall(resp);
     if (!fn?.args?.skills) throw new Error("Plan generation failed");

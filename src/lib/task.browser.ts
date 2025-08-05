@@ -1,5 +1,4 @@
-
-import { emit, detectDomains, serializeResult } from "./task.browser.helpers";
+import { emit, detectDomains, serializeResult, summariseSegment } from "./task.browser.helpers";
 import { 
     BrowserRunOptions
 } from "./task.browser.schemas";
@@ -52,75 +51,78 @@ export async function runBrowserAction(opts: BrowserRunOptions) {
     console.log("domains", response_detect_website_intent);
     const domains = response_detect_website_intent;
 
-    const skill_maps = await new SkillRegistry().byDomains(domains)
 
-    console.log("skillMap", skill_maps);
+    let remainingQuery = originalQuery;
+    console.log("remainingQuery", remainingQuery);
+    let globalHistory: Record<string, unknown> = {};
+
+
+    /* 
+    ** process each domains sequentially
+    */
+    for (const domain of domains) {
+        const skillMaps = await new SkillRegistry().byDomains([domain]);
+
+        /*
+        ** generate the macro plan
+        */
+        const plan = await generateMacroPlan({
+            sites: skillMaps,
+            query: remainingQuery,
+            context: globalHistory
+        });
+        console.log("plan", plan);
+
+        const segmentHistory = await executeMacroPlan({
+            taskId,
+            browser: browserInstance,
+            pageManager,
+            plan,
+            skillMaps
+        });
+        Object.assign(globalHistory, segmentHistory);
+
+        /*
+        ** summarize and refine for next domain
+        */
+        if (domain !== domains.at(-1)) {            // only if more sites remain
+            const summary = await summariseSegment({
+              query: remainingQuery,
+              segmentHistory,
+              model: "gemini-2.5-flash"
+            });
+      
+            if (summary.next_query?.trim()) {
+                remainingQuery = summary.next_query.trim();
+            }
+        }
+    }
 
     /*
-    ** generate the skill plan
+    ** serialize the result
     */
-    const plan = await generateMacroPlan({sites: skill_maps, query: originalQuery});
-    console.log("plan", plan);
-
-    /*
-    ** execute the macro plan
-    */
-    const history = await executeMacroPlan({
-        taskId,
-        browser: browserInstance,
-        pageManager,
-        plan,
-        skillMaps: skill_maps
-    });
-
-    console.log("history", history);
-
-    /*
-    ** flatten the history
-    */
+    setSynthesisInProgress(taskId, true);
     const serializedResults = Object
-        .entries(history)
+        .entries(globalHistory)
         .map(([k, v]) => serializeResult(k, v));
-    console.log("serializedResults", serializedResults);
 
     /*
     ** synthesize the result
     */
-    const synthesizeId = uuidv4();
-    emit("task_action_start", {
-        taskId,
-        action: "synthesize_results_browsing",
-        status: "running",
-        speakToUser: "Reasoning about the results",
-        actionId: synthesizeId
-    });
-
-    setSynthesisInProgress(taskId, true);
-
     const finalResult = await synthesizeResultsBrowsing(
         originalQuery, 
-        serializedResults, 
+        serializedResults,
         "gemini-2.5-flash"
     );
 
     setSynthesisInProgress(taskId, false);
 
-    emit("task_action_complete", {
-        taskId,
-        action: "synthesize_results_browsing",
-        status: "success",
-        speakToUser: "Reasoning about the results",
-        actionId: synthesizeId
-    });
-
-    /*
-    ** update the workflow
-    */
-    emit("workflow_update", {
-        taskId,
-        action: "done",
-        status: "completed",
+    emit("workflow_update", { 
+        taskId, 
+        action: "done", 
+        status: "completed", 
         speakToUser: finalResult,
         error: null
     });
+
 }
