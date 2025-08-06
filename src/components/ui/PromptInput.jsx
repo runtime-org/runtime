@@ -82,7 +82,7 @@ export default function PromptInput({
                         </div>
                         <div 
                             onClick={isProcessing ? handleStop : handleSend}
-                            className={`h-6 w-6 mr-1 rounded-full flex items-center justify-center duration-200 transition-colors ${
+                            className={`h-6 w-6 -mb-[2px] -mr-[1px] rounded-full flex items-center justify-center duration-200 transition-colors ${
                                 isProcessing
                                     ? 'bg-white cursor-pointer'
                                     : (text.trim() ? 'bg-white cursor-pointer' : 'bg-gray-400/20')

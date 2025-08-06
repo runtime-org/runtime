@@ -15,6 +15,12 @@ export const useAppState = create(
             runtimeMode: "research", // "research" | "action"
             synthesisInProgress: {},
 
+            selectedModel: "gemini", // "gemini" | "gemma"
+            availableModels: [
+                { id: "gemini", name: "Gemini", description: "Great for reasoning" },
+                { id: "gemma", name: "Gemma-3n:e2b", description: "Local inference & privacy" }
+            ],
+
             currentBrowserPath: null,
             browserPool: {}, // {[path]: wsEndpoint}
 
@@ -24,6 +30,14 @@ export const useAppState = create(
 
             // actions
             setActiveSessionId: (id) => set({activeSessionId: id}),
+            
+            /*
+            ** model handling
+            */
+            setSelectedModel: (modelId) => set({selectedModel: modelId}),
+            getSelectedModel: () => get().selectedModel,
+            getAvailableModels: () => get().availableModels,
+            
             /*
             ** query handling
             */
@@ -124,6 +138,7 @@ export const useAppState = create(
                 isConnected: state.isConnected,
                 runtimeMode: state.runtimeMode,
                 synthesisInProgress: state.synthesisInProgress,
+                selectedModel: state.selectedModel,
             }),
         }
     )

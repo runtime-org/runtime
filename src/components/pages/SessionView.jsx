@@ -416,13 +416,9 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
       </div>
 
       {/* input */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 p-2 pt-0 bg-[#242424]">
+      <div className="absolute bottom-0 left-0 right-0 z-10 pt-0 bg-[#242424]">
         <PromptInput
-          placeholder={
-            !historyReady ? "Loading history…" :
-            isProcessing ? "Runtime is working…" :
-            "Send a message to Runtime…"
-          }
+          placeholder="Ask follow up"
           onSubmit={handleSubmit}
           disabled={!historyReady}
           isProcessing={isProcessing}
