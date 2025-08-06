@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import clsx from "clsx";
 import { useAppState } from "../../hooks/useAppState";
 import { browserIcons } from "../../lib/utils";
+import posthog from '../../lib/posthogSetup'
 
 BrowserSelection.propTypes = {
   onLaunchAndConnect: PropTypes.func.isRequired,
@@ -62,6 +63,7 @@ export default function BrowserSelection({
     setCurrentBrowserPath(browser.path);
     setIsBrowserLaunching(true);
     await onLaunchAndConnect(browser.path);
+    posthog.capture('browser_selected', { browser: browser.name });
   };
 
   /*
