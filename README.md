@@ -90,7 +90,7 @@ A single skills of amazon.* are:
 - Actions are performed in your own logged-in browser session—no need for separate profiles or repeated logins
 - Research mode: gather, rank, and cite sources efficiently in "tabs" tab.
 - Automate multi-step tasks like triaging email, reading and replying to mail.
-- Instantly send results to Apple Notes. 
+- Instantly send results to Apple Notes.
 
 
 ---
