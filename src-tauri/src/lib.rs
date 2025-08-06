@@ -19,7 +19,6 @@ use commands::{
     validate_ws_endpoint,
     scan_for_existing_browsers,
     debug_browser_connection,
-    download_and_extract_resource,
     load_skills,
     call_app
 };
@@ -38,7 +37,6 @@ pub fn run() {
             validate_ws_endpoint,
             scan_for_existing_browsers,
             debug_browser_connection,
-            download_and_extract_resource,
             load_skills,
             call_app
         ])

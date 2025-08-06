@@ -1,5 +1,4 @@
 import { Page } from "puppeteer-core/lib/esm/puppeteer/puppeteer-core-browser.js";
-import { detectPdf } from "./dom.utils";
 
 const MESH_ID   = '__rt_mesh_overlay__';
 const STYLE_ID  = '__rt_mesh_overlay_style__';
@@ -425,9 +424,11 @@ export class DomService {
             }
         } catch (err) { }
 
-        const pdfText = await detectPdf(this.page, this.page.url());
-        if (pdfText) {
-            return pdfText;
+        /*
+        ** if the page end with pdf in the url, then just return empty string
+        */
+        if (this.page.url().endsWith('.pdf')) {
+            return '';
         }
 
         /*

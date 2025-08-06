@@ -15,15 +15,9 @@ use crate::browser_manager::{
     launch_new_instance, 
     sunset_browser_instance,
 };
-use crate::utils::download_and_extract;
 use crate::skills::download_skill_json;
 use crate::sketchs_browser::WebsiteSkills;
 use crate::apps::call;
-
-#[tauri::command]
-pub async fn download_and_extract_resource(url: String) -> Result<String, String> {
-    download_and_extract(url).await
-}
 
 #[tauri::command]
 pub async fn fetch_available_browsers() -> Result<Vec<BrowserConfig>, String> {
