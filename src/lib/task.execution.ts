@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { useAppState } from "../hooks/useAppState";
 
 import { handlePuppeteerAction } from "./pptr";
 import { SeqRunOptions } from "./task.execution.schemas";
@@ -6,7 +7,8 @@ import {
     emit, 
     pushHistory,
     researchHelper,
-    visitAndSummarizeUrl
+    // visitAndSummarizeUrl,
+    summarizeLinksInParallel
 } from "./task.execution.helpers";
 import { synthesizeResults } from "./task.execution.llm";
 import { 
@@ -28,6 +30,10 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         researchFlags = [],
         model = 'gemini-2.5-flash'
     } = opts;
+
+    const { 
+        setSynthesisInProgress
+    } = useAppState.getState();
 
     /*
     ** shared memory across queries tasks
@@ -80,30 +86,27 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 history: [],
                 taskId
             })
+            console.log("links", links);
 
             /*
             ** visit each link and summarize
             */
-            const summaries: string[] = [];
-            for (const { href } of links) {
-                if (!href || visitedUrls.has(href)) continue;
-                const { summary } = await visitAndSummarizeUrl({
-                    subQuery,
-                    href,
-                    browserInstance,
-                    currentPage,
-                    history: [],
-                    visitedUrls,
-                    taskId
-                });
-                console.log("summary", summary);
-                summaries.push(summary);
-            }
+            const summaries = await summarizeLinksInParallel({
+              subQuery,
+              links,
+              pageManager,
+              browserInstance,
+              visitedUrls,
+              taskId,
+              maxParallel: 10        
+            });
 
             /*
             ** store the summaries and jump to the next SQ
             */
-            results[qIdx] = summaries.join("\n\n") || "(no usefull information found)";
+            results[qIdx] =
+              summaries.filter(Boolean).join("\n\n") ||
+              "(no useful information found)";
             continue; // jump into the next SQi
         }
         
@@ -204,7 +207,7 @@ export async function runSequentialTask(opts: SeqRunOptions) {
                 
                 if (!pptrRes.success) {
                     /*
-                    ** retry once after a delay (2s)
+                    ** retry once after a delay (700ms)
                     */
                     await new Promise(r => setTimeout(r, 700));
                     pptrRes = await handlePuppeteerAction({
@@ -298,7 +301,11 @@ export async function runSequentialTask(opts: SeqRunOptions) {
         url: currentPage.url()
     });
 
+    setSynthesisInProgress(taskId, true);
+    
     const finalResult = await synthesizeResults(originalQuery, results, model);
+
+    setSynthesisInProgress(taskId, false);
 
     emit("task_action_complete", {
         taskId,

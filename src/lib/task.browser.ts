@@ -1,5 +1,4 @@
-
-import { emit, detectDomains } from "./task.browser.helpers";
+import { emit, detectDomains, serializeResult, summariseSegment } from "./task.browser.helpers";
 import { 
     BrowserRunOptions
 } from "./task.browser.schemas";
@@ -8,6 +7,9 @@ import { SkillRegistry } from "./task.browser.skill.registry";
 import { handler } from "./task.helpers";
 import { generateMacroPlan } from "./task.browser.skill.resolver";
 import { executeMacroPlan } from "./task.browser.executor";
+import { synthesizeResultsBrowsing } from "./task.execution.llm";
+import { useAppState } from "../hooks/useAppState";
+import { handlePuppeteerAction } from "./pptr";
 
 /*
 ** run a browser task
@@ -21,6 +23,8 @@ export async function runBrowserAction(opts: BrowserRunOptions) {
         steps
     } = opts;
 
+    const { setSynthesisInProgress } = useAppState.getState();
+
     const currentPage = await pageManager();
 
     const payload_detect_website_intent = {
@@ -29,6 +33,13 @@ export async function runBrowserAction(opts: BrowserRunOptions) {
         status: "running",
         speakToUser: "Identifying the website you want to interact with, it will help me to understand your request better."
     }
+
+
+    await handlePuppeteerAction({
+        actionDetails:{ action:'show_mesh_overlay', parameters:{}, taskId:'ui_overlay' },
+        browserInstance, 
+        currentPage
+    });
 
     /*
     ** domain detection
@@ -47,41 +58,84 @@ export async function runBrowserAction(opts: BrowserRunOptions) {
     console.log("domains", response_detect_website_intent);
     const domains = response_detect_website_intent;
 
-    const skill_maps = await new SkillRegistry().byDomains(domains)
 
-    console.log("skillMap", skill_maps);
+    let remainingQuery = originalQuery;
+    console.log("remainingQuery", remainingQuery);
+    let globalHistory: Record<string, unknown> = {};
+
+
+    /* 
+    ** process each domains sequentially
+    */
+    for (const domain of domains) {
+        const skillMaps = await new SkillRegistry().byDomains([domain]);
+
+        /*
+        ** generate the macro plan
+        */
+        const plan = await generateMacroPlan({
+            sites: skillMaps,
+            query: remainingQuery,
+            context: globalHistory
+        });
+        console.log("plan", plan);
+
+        const segmentHistory = await executeMacroPlan({
+            taskId,
+            browser: browserInstance,
+            pageManager,
+            plan,
+            skillMaps
+        });
+        Object.assign(globalHistory, segmentHistory);
+
+        /*
+        ** summarize and refine for next domain
+        */
+        if (domain !== domains.at(-1)) {            // only if more sites remain
+            const summary = await summariseSegment({
+              query: remainingQuery,
+              segmentHistory,
+              model: "gemini-2.5-flash"
+            });
+      
+            if (summary.next_query?.trim()) {
+                remainingQuery = summary.next_query.trim();
+            }
+        }
+    }
 
     /*
-    ** generate the skill plan
+    ** serialize the result
     */
-    const plan = await generateMacroPlan({sites: skill_maps, query: originalQuery});
-    console.log("plan", plan);
+    setSynthesisInProgress(taskId, true);
+    const serializedResults = Object
+        .entries(globalHistory)
+        .map(([k, v]) => serializeResult(k, v));
 
     /*
-    ** execute the macro plan
+    ** synthesize the result
     */
-    const history = await executeMacroPlan({
-        taskId,
-        browser: browserInstance,
-        pageManager,
-        plan,
-        skillMaps: skill_maps
+    const finalResult = await synthesizeResultsBrowsing(
+        originalQuery, 
+        serializedResults,
+        "gemini-2.5-flash"
+    );
+
+    await handlePuppeteerAction({
+        actionDetails:{ action:'hide_mesh_overlay', parameters:{}, taskId:'ui_overlay' },
+        browserInstance, 
+        currentPage
     });
 
-    console.log("history", history);
+    setSynthesisInProgress(taskId, false);
 
-    /*
-    ** update the workflow
-    */
-    emit("workflow_update", {
-        taskId,
-        action: "done",
-        status: "completed",
-        speakToUser: "Task completed",
+    emit("workflow_update", { 
+        taskId, 
+        action: "done", 
+        status: "completed", 
+        speakToUser: finalResult,
         error: null
     });
-
-
-
 
 }

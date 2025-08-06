@@ -94,21 +94,46 @@ export async function runAtomicStep(
             }
             
             case "extract_fields": {
-                const raw = step.selector!;
-                const selectors = raw.split(",").map(s => s.trim()).filter(Boolean);
-                
+                const parts = step.selector!
+                            .split(",")
+                            .map(s => s.trim())
+                            .filter(Boolean);
+
                 const pieces = await page.evaluate((sels) => {
                     return sels.map(sel => {
-                        const el = document.querySelector(sel);
-                        return el ? (el as HTMLElement).innerText.trim() : "";
-                    });
-                }, selectors);
+                        /*
+                        ** split css vs. extractor
+                        */
+                        const match = sel.match(/^(.*?)(?:::([^:]+))?$/);
+                        if (!match) return "";
 
-                const text = pieces
-                    .filter(Boolean)
-                    .map(t => t.replace(/\s+/g, " "))
-                    .join(" | ")
-                return { success: true, data: text };
+                        const css   = match[1].trim();
+                        let   what  = (match[2] || "text").trim();  // default = text
+
+                        /*
+                        ** handle ::attr(foo)
+                        */
+                        let attrName = "";
+                        const attrMatch = what.match(/^attr\((.+)\)$/);
+                        if (attrMatch) {
+                            what = "attr";
+                            attrName = attrMatch[1];
+                        }
+
+                        const el = document.querySelector(css);
+                        if (!el) return "";
+
+                        switch (what) {
+                            case "text": return (el as HTMLElement).innerText.trim();
+                            case "html": return (el as HTMLElement).outerHTML.trim();
+                            case "href": return (el as HTMLAnchorElement).href || "";
+                            case "attr": return el.getAttribute(attrName) || "";
+                            default:     return "";
+                        }
+                    });
+                }, parts);
+
+                return { success: true, data: pieces.filter(Boolean).join(" | ") };
             }
 
             /*

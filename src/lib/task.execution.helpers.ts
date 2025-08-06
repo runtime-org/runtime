@@ -1,6 +1,7 @@
 import { taskEventEmitter } from "./emitters";
 import { handlePuppeteerAction } from "./pptr";
 import { ResearchHelperOptions, VisitAndSummarizeUrlOptions } from "./task.execution.schemas";
+import { Page, Browser } from "puppeteer-core/lib/esm/puppeteer/puppeteer-core-browser.js";
 import { PickLinksDeclaration } from "./plan.tools";
 import { callLLM } from "./llm.engine";
 import { summarizeText } from "./plan.orchestrator";
@@ -36,7 +37,7 @@ export function truncate(str: string, maxLength: number) {
 export async function researchHelper(opts: ResearchHelperOptions): Promise<{links: { index: number, href: string }[]}> {
     const {
         subQuery,
-        maxLinks = 6,
+        maxLinks = 7,
         browserInstance,
         currentPage,
         history,
@@ -123,6 +124,7 @@ Return the indices as an array of numbers using indices as the keys not pick_lin
     });
 
     const fn = getFnCall(pickResp);
+
     const indices = (fn?.args?.indices ?? []).slice(0, maxLinks) as number[];
     
     /*
@@ -131,7 +133,9 @@ Return the indices as an array of numbers using indices as the keys not pick_lin
     const links = indices
         .map(i => ({
             index: i,
-            href: elementMap[i]?.href
+            href: Object
+                    .values(elementMap)
+                    .find((el: any) => el.index === i)?.href
         }));
 
     return { links };
@@ -226,6 +230,74 @@ export async function visitAndSummarizeUrl(opts: VisitAndSummarizeUrlOptions) {
 
     return { url: href, summary }
 }
+
+/*
+** visit up to max parallel url in parallel and return the summaries
+** fall back to sequential retries if something throws
+*/
+export async function summarizeLinksInParallel (opts: {
+    subQuery: string;
+    links:     { href: string }[];
+    pageManager: () => Promise<Page>;
+    browserInstance: Browser;
+    visitedUrls: Set<string>;
+    taskId:      string;
+    maxParallel?: number;
+  }): Promise<string[]> {
+  
+    const {
+      subQuery,
+      links,
+      pageManager,
+      browserInstance,
+      visitedUrls,
+      taskId,
+      maxParallel = 5           // hard cap per wave – tweak to taste
+    } = opts;
+  
+    /*
+    ** de-dupe + trim so we never spawn more work than we need
+    */
+    const clean = links
+        // .filter(l => l.href && !visitedUrls.has(l.href))
+        .slice(0, maxParallel);
+  
+    const jobs = clean.map(async ({ href }) => {
+        console.log("visiting", href);
+        visitedUrls.add(href);                // reserve immediately
+    
+        const page = await pageManager();     // ← gets an idle tab or opens one
+        try {
+            const { summary } = await visitAndSummarizeUrl({
+                subQuery,
+                href,
+                browserInstance,
+                currentPage: page,
+                history:     [],
+                visitedUrls,
+                taskId
+            });
+            console.log("summary", summary);
+            return summary ?? "";
+        } catch (err) {
+            console.error(`Summarising ${href} failed`, err);
+            return "";
+        } finally {
+            try { 
+                // await page.close(); 
+            } catch (err) { }
+        }
+    });
+  
+    /*
+    ** wait for all workers in this wave
+    */
+    const settled = await Promise.allSettled(jobs);
+    return settled
+      .filter(r => r.status === "fulfilled" && r.value)
+      .map(r => (r as PromiseFulfilledResult<string>).value);
+}
+  
 /*
 ** push simplified page context to history
 */
