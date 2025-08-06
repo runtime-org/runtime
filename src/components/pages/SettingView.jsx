@@ -24,9 +24,7 @@ export default function SettingView({ onClose }) {
                     <button 
                         key={model.id}
                         onClick={() => handleModelSelect(model.id)}
-                        className={`w-full text-left text-sm py-2 px-3 hover:bg-[#323232] rounded transition-colors flex items-center justify-between ${
-                            selectedModel === model.id ? 'bg-[#323232]' : ''
-                        }`}
+                        className={`w-full text-left text-sm py-2 px-3 hover:bg-[#323232] rounded-lg transition-colors flex items-center justify-between`}
                     >
                         <div>
                             <div className="font-medium">{model.name}</div>
@@ -37,6 +35,8 @@ export default function SettingView({ onClose }) {
                         )}
                     </button>
                 ))}
+
+            <div className="h-1"></div>
             </div>
         </div>
     );
