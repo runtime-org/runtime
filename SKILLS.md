@@ -20,7 +20,7 @@ Important: While we recognize that this method is not infinitely scalable, we ha
 
 We decided to call it, Skill-Based-Protocol.
 It consist of two parts. 
-- The first part is generating the skills or teaching AI the action you will like it to do. This process has to be done on the fly. We will post about this process soon. For the moment, we use hand crafter skills generation. 
+- The first part is generating the skills or teaching AI the action you will like it to do. This process has to be done on the fly. We will post about this process soon. For the moment, we use hand crafted skills generation. 
 - The second part, is the execution of the task/action on the browser using the skills. The contains of skills is kind of declarative.
 
 A skill is a set of functions, and each functions has a set of actions.
