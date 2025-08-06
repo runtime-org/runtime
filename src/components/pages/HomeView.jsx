@@ -4,7 +4,6 @@ import PromptInput from "../ui/PromptInput";
 import InfinityCanvas from "../ui/InfinityIcon";
 import BrowserSelection from "../ui/BrowserSelection";
 import { useAppState } from "../../hooks/useAppState";
-import ProfileIcon from "../ui/ProfileIcon";
 import { v4 as uuidv4 } from 'uuid';
 import { useState, useRef, useEffect } from 'react';
 import SettingView from "../pages/SettingView";
@@ -32,10 +31,6 @@ export default function HomeView(props) {
     
     const [showSettingsMenu, setShowSettingsMenu] = useState(false);
     const settingsMenuRef = useRef(null);
-    const profileIconRef = useRef(null);
-
-    // placeholder username
-    const username = "User";
 
     // click outside detection
     useEffect(() => {
@@ -44,8 +39,7 @@ export default function HomeView(props) {
             
             if (
                 settingsMenuRef.current && 
-                !settingsMenuRef.current.contains(event.target) &&
-                (!profileIconRef.current || !profileIconRef.current.contains(event.target))
+                !settingsMenuRef.current.contains(event.target)
             ) {
                 setShowSettingsMenu(false);
             }
@@ -58,13 +52,8 @@ export default function HomeView(props) {
         };
     }, [showSettingsMenu]);
     
-    // profile button
-    const profileButton = {
-        component: ProfileIcon,
-        props: { 
-            username,
-            ref: profileIconRef 
-        },
+    // model selector button (replaces profile button)
+    const modelSelectorButton = {
         onClick: () => setShowSettingsMenu(prev => !prev)
     };
     
@@ -80,7 +69,7 @@ export default function HomeView(props) {
     }
     
     const handleSubmit = async (text) => {
-        const newSession = await createSession(text); // fastapi /plan
+        const newSession = await createSession(text);
         addSession(newSession);
         setActiveSessionId(newSession.id);
         openSession(newSession.id);
@@ -91,7 +80,7 @@ export default function HomeView(props) {
             <HeaderBar 
                 title=""
                 leftAction={{ icon: "history", onClick: openHistory }}
-                rightAction={profileButton}
+                rightAction={modelSelectorButton}
             />
             {/* browser selection here */}
             <div className="absolute top-12 left-0 right-0 flex flex-col w-full items-center justify-center">
@@ -119,7 +108,8 @@ export default function HomeView(props) {
             <div className="absolute bottom-0 left-0 right-0">
                 <PromptInput 
                     placeholder="What would you like the browser to do?"
-                    onSubmit={handleSubmit} 
+                    onSubmit={handleSubmit}
+                    isConnected={isConnected}
                 />
             </div>
         </div>
