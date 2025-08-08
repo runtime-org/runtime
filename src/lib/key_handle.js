@@ -22,6 +22,9 @@ export async function getApiKey(keyName = 'gemini') {
         if (keyName === 'gemini') {
             return import.meta.env.VITE_GEMINI_API_KEY;
         }
+        if (keyName === "posthog") {
+            return import.meta.env.VITE_POSTHOG_API_KEY;
+        }
         
         return null;
     } catch (error) {

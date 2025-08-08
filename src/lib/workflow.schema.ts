@@ -1,3 +1,5 @@
+import { Page } from "puppeteer-core/lib/esm/puppeteer/puppeteer-core-browser.js";
+
 export type WorkflowStatus  = 'pending' | 'running' | 'completed' | 'failed';
 export type SubTaskStatus   = 'pending' | 'running' | 'completed' | 'failed';
 
@@ -44,4 +46,5 @@ export interface RunnerOptions {
   browserInstance: any;
   researchFlags: number[];
   steps: string[];
+  pages: Page[];
 }

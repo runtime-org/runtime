@@ -138,12 +138,17 @@ Call **summarize_segment** exactly once with:
 • "next_query" - the rewritten goal for the next site, or leave empty "" if no change.
 `;  
     console.log("prompt", prompt);
+    const config = {
+      temperature: 0.2,
+      maxOutputTokens: 70000,
+      tools: [{ functionDeclarations: SummarizeSegmentDeclaration }]
+    };
   
     const resp = await callLLM({
-      modelId: opts.model,
+      provider: 'gemini',
+      tier: 'light',
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { temperature: 0.2, maxOutputTokens: 70000 },
-      tools: [{ functionDeclarations: SummarizeSegmentDeclaration }],
+      config,
       ignoreFnCallCheck: true
     });
 

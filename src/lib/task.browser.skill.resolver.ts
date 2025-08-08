@@ -113,7 +113,8 @@ Plan as list of skills:
 
     console.log("prompt", prompt);
     const resp = await callLLM({
-        modelId: "gemini-2.5-flash",
+        provider: 'gemini',
+        tier: 'smart',
         contents: [{ role: "user", parts: [{ text: prompt } ] }],
         config,
         ignoreFnCallCheck: true
@@ -190,7 +191,8 @@ Domains:
         tools: [{ functionDeclarations: [DomainDetectDeclaration] }]
     };
     const resp = await callLLM({
-      modelId: "gemini-2.5-flash",
+      provider: 'gemini',
+      tier: 'smart',
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config,
       ignoreFnCallCheck: true

@@ -86,7 +86,8 @@ Return ONLY a generate_action_plan tool call with the "steps" array.
         tools: [{ functionDeclarations: [PlanDeclaration] }]
     }
     const resp = await callLLM({ 
-        modelId: "gemini-2.5-flash",
+        provider: 'gemini',
+        tier: 'smart',
         contents: [{ role: "user", parts: [ { text: prompt } ] }],
         config,
         ignoreFnCallCheck: true
@@ -132,7 +133,8 @@ You will be given a micro step instruction and you need to translate it into the
     }
 
     const resp = await callLLM({ 
-        modelId: "gemini-2.5-flash",
+        provider: 'gemini',
+        tier: 'smart',
         contents: [
             { role: "user", parts: [ { text: prompt } ] },
             ...history
@@ -162,7 +164,8 @@ ${answer}
 Respond ONLY with an evaluate_answer function call.
 `;
     const resp = await callLLM({
-        modelId: "gemini-2.5-flash",
+        provider: 'gemini',
+        tier: 'smart',
         contents: [{ role:"user", parts:[{ text: prompt }] }],
         config: {
             temperature: 0.0,
@@ -195,7 +198,8 @@ Please summarize in bullet points.
 `;
     
     const summaryCall = await callLLM({
-        modelId: "gemini-2.5-flash-lite",
+        provider: 'gemini',
+        tier: 'light',
         contents: [{ role: "user", parts: [ { text: prompt } ] }],
         config: {
             temperature: 0.0,

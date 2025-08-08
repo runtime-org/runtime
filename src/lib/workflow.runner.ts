@@ -6,6 +6,7 @@ import { runSequentialTask } from "./task.execution";
 import { emit } from "./task.execution.helpers";
 import { RunnerOptions } from "./workflow.schema";
 import { runBrowserAction } from "./task.browser";
+import { runTabQuery } from "./task.tab";
 
 export async function runWorkflow(opts: RunnerOptions) {
   const { 
@@ -16,9 +17,11 @@ export async function runWorkflow(opts: RunnerOptions) {
     dependencies,
     browserInstance,
     researchFlags,
-    steps
+    steps,
+    pages
   } = opts;
 
+  console.log("pages", pages);
 
   const pageManager = createPagePool({ browser: browserInstance });
   /* 
@@ -27,41 +30,52 @@ export async function runWorkflow(opts: RunnerOptions) {
   const taskId = uuidv4();
   emit('workflow_update', { taskId, action: 'CREATE_WORKFLOW', speakToUser: "Starting the task", status: 'initial' });
 
-  if (mode === "browser_action") {
-    /*
-    ** create and run a runner for the browser action
-    */
-    console.log("steps", steps);
-    await runBrowserAction({
-      taskId,
-      originalQuery,
-      pageManager,
-      browserInstance,
-      steps
-    });
-  } else if (mode === "analysis") {
-    /*
-    ** create and run a runner for each sub-query
-    */
-    const next = async () => {
-      await runSequentialTask({
-        originalQuery,
-        queries,
+  /*
+  ** check if we have pages to analyze
+  */
+  if (pages && pages.length > 0) {
+      await runTabQuery({
         taskId,
-        sessionId,
+        originalQuery,
+        pages,
+    });
+  } else {
+
+    if (mode === "browser_action") {
+      /*
+      ** create and run a runner for the browser action
+      */
+      console.log("steps", steps);
+      await runBrowserAction({
+        taskId,
+        originalQuery,
         pageManager,
-        dependencies,
-        researchFlags,
-        browserInstance
+        browserInstance,
+        steps
       });
-
-    };
-
-    /*
-    ** start
-    */
-    await next();
-
+    } else if (mode === "analysis") {
+      /*
+      ** create and run a runner for each sub-query
+      */
+      const next = async () => {
+        await runSequentialTask({
+          originalQuery,
+          queries,
+          taskId,
+          sessionId,
+          pageManager,
+          dependencies,
+          researchFlags,
+          browserInstance
+        });
+  
+      };
+  
+      /*
+      ** start
+      */
+      await next();
+    }
   }
 }
 

@@ -41,9 +41,9 @@ Important:
     console.log(`Synthesis attempt ${attempt}/${maxTries}`);
 
     const synthResp = await callLLM({
-      modelId: model,
+      provider: 'gemini',
+      tier: 'smart',
       contents: [{ role: "user", parts: [{ text: synthesisPrompt }] }],
-      stream: true,
       config: {
         temperature: attempt === 1 ? 0.2 : 0.3,
         maxOutputTokens: 8192,
@@ -105,9 +105,9 @@ Important:
     console.log(`Synthesis attempt ${attempt}/${maxTries}`);
 
     const synthResp = await callLLM({
-      modelId: model,
+      provider: 'gemini',
+      tier: 'smart',
       contents: [{ role: "user", parts: [{ text: synthesisPrompt }] }],
-      stream: true,
       config: {
         temperature: attempt === 1 ? 0.2 : 0.3,
         maxOutputTokens: 8192,

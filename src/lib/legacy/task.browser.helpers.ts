@@ -75,7 +75,8 @@ Note:
 `;
   
     const resp = await callLLM({
-        modelId: "gemini-2.5-flash",
+        provider: 'gemini',
+        tier: 'smart',
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         config: {
             temperature: 0,
@@ -146,7 +147,8 @@ Improve it if needed (order, clarity, remove useless steps, add missing steps).
 And be very flexible with steps for browser automation. Avoid producing few steps, it should be atomic.
 `;
     const resp = await callLLM({
-        modelId: "gemini-2.5-flash",
+        provider: 'gemini',
+        tier: 'smart',
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         config: {
             temperature: 0,
@@ -184,7 +186,8 @@ ERROR: "${lastError}"
 ### RECOVERY
 `;
     const resp = await callLLM({
-        modelId: "gemini-2.5-flash",
+        provider: 'gemini',
+        tier: 'smart',
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         config: {
             temperature: 0,
@@ -225,7 +228,8 @@ ERROR: "Timeout 5000ms"
 RECOVERY: "Click on input with the value add to cart"
 `;
     const resp = await callLLM({
-      modelId: "gemini-2.5-flash",
+      provider: 'gemini',
+      tier: 'smart',
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         temperature: 0,
@@ -338,7 +342,8 @@ Respond ONLY with an evaluate_macro function call.
 `;
 
   const resp = await callLLM({
-    modelId : 'gemini-2.5-flash',
+    provider: 'gemini',
+    tier: 'smart',
     contents: [{ role:'user', parts:[{ text: prompt }] }],
     config  : {
       temperature     : 0.0,

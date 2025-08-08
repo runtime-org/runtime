@@ -130,3 +130,17 @@ npm run tauri dev
 ### Contributing
 
 If you want to contribute, you are welcome! Please open an issue or submit a PR if you want us to generate a skills for your website or web app.
+
+### Citation
+
+If you use this project in your research, please cite it as follows:
+
+```bibtex
+@software{runtime2025,
+  author = {Tito and Mile and Sam},
+  title = {Runtime},
+  year = {2025},
+  publisher = {GitHub},
+  url = {[https://github.com/runtime-org/runtime](https://github.com/runtime-org/runtime)}
+}
+```

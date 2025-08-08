@@ -4,6 +4,7 @@ import { TbThumbUp, TbThumbDown, TbCopy, TbPlus, TbRotateClockwise } from "react
 import AppActionMenu from './AppActionMenu';
 import PropTypes from 'prop-types';
 import { mdToHtml } from '../../lib/utils';
+import posthog from '../../lib/posthogSetup';
 
 ActionBar.propTypes = {
   text: PropTypes.string,
@@ -13,6 +14,8 @@ ActionBar.propTypes = {
   onNotion: PropTypes.func,
   onAppleNote: PropTypes.func
 };
+
+const version = "0.1.0";
 
 export default function ActionBar({ 
   text = "", 
@@ -24,6 +27,7 @@ export default function ActionBar({
   const [openMenuFor, setOpenMenuFor] = useState(null);
 
   const handleThumbsUp = () => {
+    posthog.capture('liked', { version });
     if (onThumbsUp) {
       onThumbsUp();
     } else {
@@ -32,6 +36,7 @@ export default function ActionBar({
   };
 
   const handleThumbsDown = () => {
+    posthog.capture('disliked', { version });
     if (onThumbsDown) {
       onThumbsDown();
     } else {
@@ -40,6 +45,7 @@ export default function ActionBar({
   };
 
   const handleCopy = () => {
+    posthog.capture('copied_to_clipboard', { version });
     if (onCopy) {
       onCopy(text);
     } else {
@@ -51,13 +57,16 @@ export default function ActionBar({
   const handleNotion = () => {
     if (onNotion) {
       onNotion(text);
+      posthog.capture('sent_to_notion', { version });
     } else {
       console.log('Send to Notion clicked');
+      posthog.capture('sent_to_notion', { version });
     }
   };
 
   const handleAppleNote = () => {
     setOpenMenuFor('apple');
+    posthog.capture('sent_to_apple_note', { version });
   };
 
   /* ===== menus for each icon ===== */
