@@ -105,7 +105,8 @@ that should be visited, in order, to answer the sub-query. Prioritize the 3 to 4
 Return the indices as an array of numbers using indices as the keys not pick_links`
 
     const pickResp = await callLLM({
-        modelId : "gemini-2.5-flash",
+        provider: 'gemini',
+        tier: 'smart',
         contents: [{ role : "user", parts: [{ text: prompt }] }],
         config: {
             temperature : 0,

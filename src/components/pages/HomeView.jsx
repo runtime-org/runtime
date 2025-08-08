@@ -21,6 +21,7 @@ export default function HomeView(props) {
         addSession, 
         openSession,
         setActiveSessionId,
+        setPendingPages,
     } = useAppState();
 
     const {
@@ -68,7 +69,22 @@ export default function HomeView(props) {
         return newSession;
     }
     
-    const handleSubmit = async (text) => {
+    const handleSubmit = async (payload) => {
+        const text = typeof payload === "string" ? payload : payload?.text;
+        const pages = typeof payload === "object" ? payload?.pages : undefined;
+        if (!text) return;
+        
+        /*
+        ** can use pages here too if needed
+        */
+        console.log("Selected pages in home:", pages);
+        
+        // store pages before navigation
+        if (pages && pages.length > 0) {
+            console.log("Storing pages in home:", pages);
+            setPendingPages(pages);
+        }
+        
         const newSession = await createSession(text);
         addSession(newSession);
         setActiveSessionId(newSession.id);

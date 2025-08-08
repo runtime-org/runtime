@@ -159,28 +159,16 @@
         {
           "name": "reply_current_email",
           "description": "Click Reply in the open conversation, type a message, send it, and return Gmail's confirmation banner.",
-          "input": {
-            "text": "string"
-          },
+          "input": { "text": "string" },
           "output": "results",
           "steps": [
-            { "action": "wait_for_selector",
-              "selector": "span.ams.bkH[role='link']" },
-            { "action": "scroll_down", "times": 4 },
-            { "action": "click",
-              "selector": "span.ams.bkH[role='link']" },
-            { "action": "wait_for_selector",
-              "selector": "div[aria-label='Message Body'][role='textbox']" },
-            { "action": "type",
-              "selector": "div[aria-label='Message Body'][role='textbox']",
-              "input_key": "text" },
-            { "action": "click",
-              "selector": "div[role='button'][data-tooltip^='Send']" },
-            { "action": "wait_for_selector",
-              "selector": "span.bAq" },
-            { "action": "extract_fields",
-              "selector": "span.bAq",
-              "output_key": "results" }
+            { "action": "wait_for_selector", "selector": "button[role='link'][aria-label='Reply']" },
+            { "action": "click", "selector": "button[role='link'][aria-label='Reply']" },
+            { "action": "wait_for_selector", "selector": "div[aria-label='Message Body'][role='textbox']" },
+            { "action": "type", "selector": "div[aria-label='Message Body'][role='textbox']", "input_key": "text" },
+            { "action": "click", "selector": "div[role='button'][data-tooltip^='Send']" },
+            { "action": "wait_for_selector", "selector": "span.bAq" },
+            { "action": "extract_fields", "selector": "span.bAq", "output_key": "results" }
           ]
         }
       ]

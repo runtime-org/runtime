@@ -1,20 +1,61 @@
 import { GoogleGenAI } from '@google/genai';
 import { getApiKey } from './key_handle.js';
 import { isRetryableError, isFunctionCall } from './llm.engine.helper.js';
+import { MODEL_MAP, Provider, Tier, CallLLMProps } from './llm.engine.schemas.js';
+
+
 
 // default support gemini
-export async function callLLM(props) {
+export async function callLLM(props: CallLLMProps) {
     const { 
-        modelId, 
+        provider,
+        tier,
         contents, 
         config = {}, 
         maxRetries = 3, 
         maxFnCallRetries = 5, 
         ignoreFnCallCheck = false,
-        stream = false 
     } = props;
 
-    /*
+    const route = MODEL_MAP[provider][tier];
+    if (!route) throw new Error(`Invalid provider or tier: ${provider} ${tier}`);
+
+    switch (provider) {
+        case 'gemini':
+            const geminiModelId = route.modelId;
+            return await callGemini({
+                modelId: geminiModelId,
+                contents,
+                config,
+                maxRetries,
+                maxFnCallRetries,
+                ignoreFnCallCheck
+            });
+        case 'gemma':
+            // return await callGemma(props);
+            break;
+    }
+
+   
+}
+
+
+async function callGemini({
+    modelId,
+    contents,
+    config = {},
+    maxRetries = 3,
+    maxFnCallRetries = 5,
+    ignoreFnCallCheck = false,
+}: {
+    modelId: string;
+    contents: any[];
+    config: any;
+    maxRetries: number;
+    maxFnCallRetries: number;
+    ignoreFnCallCheck: boolean;
+}) {
+     /*
     ** get the api key and get the genAI instance
     */
     const apiKey = await getApiKey('gemini');
@@ -39,8 +80,7 @@ export async function callLLM(props) {
             const response = await genAI.models.generateContent({
                 model: modelId,
                 contents: convertedContents, 
-                config: config,
-                stream: stream
+                config: config
             });
 
             /*
@@ -52,9 +92,13 @@ export async function callLLM(props) {
                 */
                 if (maxFnCallRetries > 0) {
                     console.log(`Response is not a function call, retrying... (${5 - maxFnCallRetries + 1}/5)`);
-                    return await callLLM({
-                        ...props,
-                        maxFnCallRetries: maxFnCallRetries - 1
+                    return await callGemini({
+                        modelId,
+                        contents,
+                        config,
+                        maxRetries,
+                        maxFnCallRetries: maxFnCallRetries - 1,
+                        ignoreFnCallCheck
                     });
                 } else {
                     console.warn('Function call enforcement failed after 5 attempts, returning last response');
@@ -79,5 +123,6 @@ export async function callLLM(props) {
         }
     }
     
-    throw new Error(`LLM call failed after ${maxRetries} attempts. Last error: ${lastError?.message || 'Unknown error'}`);
+    throw new Error(`LLM call failed after ${maxRetries} attempts. Last error: ${lastError}`);
 }
+

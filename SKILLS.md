@@ -21,10 +21,10 @@ Important: While we recognize that this method is not infinitely scalable, we ha
 We decided to call it, Skill-Based-Protocol.
 It consist of two parts. 
 - The first part is generating the skills or teaching AI the action you will like it to do. This process has to be done on the fly. We will post about this process soon. For the moment, we use hand crafted skills generation. 
-- The second part, is the execution of the task/action on the browser using the skills. The contains of skills is kind of declarative.
+- The second part, is the execution of the task/action on the browser using the skills. The content of skills is currently declarative.
 
-A skill is a set of functions, and each functions has a set of actions.
-`search_products` is a skill of amazon.*:
+A skill is a set of functions, and each function has a set of actions.
+`search_products` is a skill/function of amazon.*:
 
 ```json
 {
@@ -54,3 +54,8 @@ A skill is a set of functions, and each functions has a set of actions.
     ]
 }
 ```
+
+---
+
+### Why skills?
+A typical Amazon user doesn't perform 50 actions to buy a product. An average user searches for products with competitive pricing and fast delivery. These actions are consistent across all users. Instead of feeding live or processed live DOM data to the Language Model to predict the next action heuristically, this approach is computationally expensive. For a single website like Amazon, if you apply this strategy for 1,000 users, where each user request consumes 100,000 tokens, you would end up using at least 1 million tokens. However, with skills, they function like a factorization method—doing the work once for a single user and making those skills available for the other 999 users.

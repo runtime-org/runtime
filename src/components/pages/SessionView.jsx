@@ -6,6 +6,7 @@ import HeaderBar from '../layout/HeaderBar';
 import PromptInput from '../ui/PromptInput';
 import User from '../ui/User';
 import System from '../ui/System';
+import SettingView from '../pages/SettingView';
 
 import { useAppState }  from '../../hooks/useAppState';
 
@@ -39,7 +40,9 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
     getWsFor,
     setBrowserInstance,
     setIsConnected,
-    currentBrowserPath
+    currentBrowserPath,
+    getPendingPages,
+    clearPendingPages
   } = useAppState();
 
   const activeSession   = sessions.find(s => s.id === activeSessionId);
@@ -47,9 +50,11 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
   const [isProcessing, setIsProcessing] = useState(false);
   const [historyReady, setHistoryReady] = useState(false);
   const [isMessagesReady, setIsMessagesReady] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
   const messagesEndRef  = useRef(null);
   const cancelRef = useRef({ cancelled: false });
+  const settingsMenuRef = useRef(null);
 
   /*
   ** reattach if we lost the in memory handle
@@ -133,25 +138,32 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
     if (
       activeSessionId &&
       messages.length === 0 &&
-      activeSession.title 
+      activeSession?.title 
     ) {
 
       const handleInitialQuery = async () => {
-
+        const pendingPages = getPendingPages ? getPendingPages() : [];
+        
         /*
         ** save the message
         */
         addNewMessage({ type: 'user', text: activeSession.title });
 
         /*
-        ** execute the query
+        ** execute the query with pending pages if available
         */
-        executeQuery(activeSession.title);
+        if (pendingPages && pendingPages.length > 0) {
+          console.log("Executing with pending pages:", pendingPages);
+          executeQuery(activeSession.title, pendingPages);
+          if (clearPendingPages) clearPendingPages();
+        } else {
+          executeQuery(activeSession.title);
+        }
       };
 
       handleInitialQuery();
     }
-  }, [activeSessionId, messages.length, activeSession.title, isMessagesReady]);
+  }, [activeSessionId, messages.length, activeSession?.title, isMessagesReady]);
 
   /*
   * handle workflow updates (create, update, complete "plan" of sub tasks)
@@ -184,7 +196,9 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
           setTimeout(() => addMessageToSession(activeSessionId, sysMsg), 10);
         } else if (status === 'completed') {
           sysMsg = {
-            ...sysMsg, status: 'complete', text: speakToUser,
+            ...sysMsg, 
+            status: 'complete', 
+            text: speakToUser,
           };
           setTimeout(() => addMessageToSession(activeSessionId, sysMsg, true), 10);
         }
@@ -203,7 +217,9 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
         const clone = [...prev];
 
         let sysIndex = ensureSysMessage(clone, taskId, action);
-        let sysMsg = { ...clone[sysIndex] };
+        let sysMsg = { 
+          ...clone[sysIndex]
+        };
 
         const newPlanStep = {
           id: actionId,
@@ -231,7 +247,9 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
       setMessages(prev => {
         const clone  = [...prev];
         const sysIndex = ensureSysMessage(clone, taskId, '');
-        const sysMsg = { ...clone[sysIndex] };
+        const sysMsg = { 
+          ...clone[sysIndex]
+        };
 
         const finalStatus = status === 'success' ? 'completed' : 'error';
 
@@ -295,59 +313,88 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
   /*
   * execute a query
   */
-  const executeQuery = async (rawText) => {
+  const executeQuery = async (rawText, pages = []) => {
 
     setIsProcessing(true);
     cancelRef.current.cancelled = false;
 
+    console.log("pages", pages);
+
     try {
-      /* 
-      * analyze and split the query into sub queries if necessary
-      */
-      const fullHistory = getSessionMessages(activeSessionId) ?? [];
-      const historyDigest = buildHistoryDigest(fullHistory);
-      console.log("historyDigest", historyDigest);
-
-      const resp  = await splitQuery({query: rawText, history: historyDigest, runtimeMode});
-      console.log("kind", resp.kind);
-
-      if (resp.kind === "small_talk") {
-        const { reply } = resp;
-        addNewMessage({ type:'system', text: reply });
-        return;
-      }
-
       /*
-      * run the workflow
+      * check if pages are provided
       */
-      let browser = browserInstance;
-      if (!browser) {
-        browser = await reconnectIfNeeded();
-        // console.log("browser after reconnect", browser);
-      }
+      if (pages && pages.length > 0) {
+        let browser = browserInstance;
+        if (!browser) {
+          browser = await reconnectIfNeeded();
+        }
 
-      if (!browser) {
-        addNewMessage({ 
-          type:'system', 
-          text: "Ops, something went wrong, please relaunch runtime",
-          isError: true
+        if (!browser) {
+          addNewMessage({ 
+            type:'system', 
+            text: "Ops, something went wrong, please relaunch runtime",
+            isError: true
+          });
+          return;
+        }
+
+        await runWorkflow({
+          mode: 'tab_query',
+          originalQuery: rawText,
+          sessionId: activeSessionId,
+          browserInstance: browser,
+          pages: pages,
+          cancelRef,
         });
-        return;
-      }
+        
+      } else {
+        /*
+        * classic flow
+        */
+        const fullHistory = getSessionMessages(activeSessionId) ?? [];
+        const historyDigest = buildHistoryDigest(fullHistory);
+          console.log("historyDigest", historyDigest);
 
-      await runWorkflow({
-        mode: resp.kind,
-        originalQuery: rawText,
-        sessionId: activeSessionId,
-        queries: resp.queries,
-        dependencies: resp.dependencies,
-        researchFlags: resp.researchFlags,
-        steps: resp.steps,
-        browserInstance: browser,
-        cancelRef,
-        // onDone: (text) => addNewMessage({ type:'system', text }),
-        // onError: (err) => addNewMessage({ type:'system', text: err, isError: true })
-      })
+        const resp = await splitQuery({query: rawText, history: historyDigest, runtimeMode});
+        console.log("kind", resp.kind);
+
+        if (resp.kind === "small_talk") {
+          const { reply } = resp;
+          addNewMessage({ type:'system', text: reply });
+          return;
+        }
+
+        /*
+        * run the workflow
+        */
+        let browser = browserInstance;
+        if (!browser) {
+          browser = await reconnectIfNeeded();
+        }
+
+        if (!browser) {
+          addNewMessage({ 
+            type:'system', 
+            text: "Ops, something went wrong, please relaunch runtime",
+            isError: true
+          });
+          return;
+        }
+
+        await runWorkflow({
+          mode: resp.kind,
+          originalQuery: rawText,
+          sessionId: activeSessionId,
+          queries: resp.queries,
+          dependencies: resp.dependencies,
+          researchFlags: resp.researchFlags,
+          steps: resp.steps,
+          browserInstance: browser,
+          pages: [],
+          cancelRef,
+        });
+      }
     } catch (error) {
       addNewMessage({ type:'system', text: error.message, isError:true });
     } finally {
@@ -358,21 +405,25 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
   /*
   * handle the submit of a new message
   */
-  const handleSubmit = async (text) => {
-    if (!text.trim() || isProcessing) return;
+  const handleSubmit = async (payload) => {
+    const isObj = typeof payload === 'object' && payload !== null;
+    const text = isObj ? payload.text : payload;
+    const pages = isObj ? payload.pages : undefined;
+
+    if (!text?.trim() || isProcessing) return;
 
     // run puppeteer function to test, i will a function here
     if (!browserInstance) {
       browserInstance = await reconnectIfNeeded();
     }
 
-    // use page manager
-    const pageManager = createPagePool({ browser: browserInstance });
-
-    const page = await pageManager();
+    // // use page manager
+    // const pageManager = createPagePool({ browser: browserInstance });
+    // const page = await pageManager();
 
     addNewMessage({ type:'user', text: text.trim() });
-    executeQuery(text.trim());
+    
+    executeQuery(text.trim(), pages || []);
   };
 
   /*
@@ -384,8 +435,34 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
   }
 
   /*
-  * if no active session, show a loading message
+  * click outside detection for settings menu
   */
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (!showSettingsMenu) return;
+      
+      if (
+        settingsMenuRef.current && 
+        !settingsMenuRef.current.contains(event.target)
+      ) {
+        setShowSettingsMenu(false);
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showSettingsMenu]);
+
+  /*
+  * model selector
+  */
+  const modelSelectorButton = {
+    onClick: () => setShowSettingsMenu(prev => !prev)
+  };
+
   if (!activeSession)
     return <div className="flex items-center justify-center h-full">Loading session…</div>;
 
@@ -394,7 +471,14 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
       <HeaderBar
         title={activeSession.title}
         leftAction={{ icon: 'back', onClick: openHome }}
+        rightAction={modelSelectorButton}
       />
+
+      {showSettingsMenu && (
+        <div className="absolute top-10 right-4 z-10" ref={settingsMenuRef}>
+          <SettingView onClose={() => setShowSettingsMenu(false)} />
+        </div>
+      )}
 
       {/* chat pane */}
       <div className="flex-grow overflow-y-auto p-4 space-y-2 no-scrollbar pb-24">

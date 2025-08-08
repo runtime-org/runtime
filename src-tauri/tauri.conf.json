@@ -35,6 +35,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": ["src/scripts/*.scpt"]
+    "resources": [
+      "src/scripts/*.scpt",
+      "scripts/setup_ollama.sh"
+    ]
   }
 }
