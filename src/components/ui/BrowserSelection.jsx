@@ -10,6 +10,8 @@ BrowserSelection.propTypes = {
   isConnected: PropTypes.bool.isRequired,
 };
 
+const version = "0.1.0";
+
 export default function BrowserSelection({
   isConnected,
   onLaunchAndConnect,
@@ -63,7 +65,18 @@ export default function BrowserSelection({
     setCurrentBrowserPath(browser.path);
     setIsBrowserLaunching(true);
     await onLaunchAndConnect(browser.path);
-    posthog.capture('browser_selected', { browser: browser.name });
+    
+    // map browser names to clean event names
+    const browserMap = {
+      'Google Chrome': 'chrome',
+      'Mozilla Firefox': 'firefox',
+      'Safari': 'safari',
+      'Microsoft Edge': 'edge',
+      'Opera': 'opera'
+    };
+    
+    const eventName = browserMap[browser.name] || browser.name.toLowerCase().replace(/\s+/g, '');
+    posthog.capture(`${eventName}_active`, { version } );
   };
 
   /*

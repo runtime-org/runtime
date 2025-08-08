@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { invoke } from "@tauri-apps/api/core";
+import posthog from '../lib/posthogSetup';
+
+const version = "0.1.0";
 
 export const useAppState = create(
     persist(
@@ -15,6 +18,11 @@ export const useAppState = create(
             runtimeMode: "research", // "research" | "action"
             synthesisInProgress: {},
 
+            selectedModel: "gemini", // "gemini"
+            availableModels: [
+                { id: "gemini", name: "Gemini", description: "Great for reasoning" }
+            ],
+
             currentBrowserPath: null,
             browserPool: {}, // {[path]: wsEndpoint}
 
@@ -22,8 +30,20 @@ export const useAppState = create(
             pageInstance: null,
             isConnected: false,
 
+            selectedTabs: [], // [{title, url, page}]
+            pendingPages: [],
+
+
             // actions
             setActiveSessionId: (id) => set({activeSessionId: id}),
+            
+            /*
+            ** model handling
+            */
+            setSelectedModel: (modelId) => set({selectedModel: modelId}),
+            getSelectedModel: () => get().selectedModel,
+            getAvailableModels: () => get().availableModels,
+            
             /*
             ** query handling
             */
@@ -39,8 +59,14 @@ export const useAppState = create(
             /*
             ** view handling
             */
-            openHome: () => set({view: "home", activeSessionId: null}),
-            openHistory: () => set({view: "history"}),
+            openHome: () => {
+                // posthog.capture('navigation_to_home', { version });
+                set({view: "home", activeSessionId: null});
+            },
+            openHistory: () => {
+                posthog.capture('navigation_to_history', { version });
+                set({view: "history"});
+            },
             openSession: (id) => set({view: "session", activeSessionId: id}),
             openProfile: () => set({view: "profile"}),
             /*
@@ -100,6 +126,15 @@ export const useAppState = create(
             /*
             ** browser-related actions
             */
+            getSelectedTabs: () => get().selectedTabs,
+            addSelectedTab: (tab) => set(state => {
+                const exists = state.selectedTabs.some(t => t.title === tab.title && t.url === tab.url);
+                return exists ? state : { selectedTabs: [...state.selectedTabs, tab] };
+            }),
+            removeSelectedTab: (title, url) => set(state => ({
+                selectedTabs: state.selectedTabs.filter(t => !(t.title === title && t.url === url))
+            })),
+            clearSelectedTabs: () => set({ selectedTabs: [] }),
             setBrowserInstance: (instance) => set({browserInstance: instance}),
             setPageInstance: (instance) => set({pageInstance: instance}),
             setIsConnected: (connected) => set({isConnected: connected}),
@@ -111,7 +146,14 @@ export const useAppState = create(
                     console.error("Failed to load available browsers:", error);
                     set({availableBrowsers: []});
                 }
-            }
+            },
+            
+            /*
+            ** pages handling for navigation
+            */
+            setPendingPages: (pages) => set({ pendingPages: pages }),
+            getPendingPages: () => get().pendingPages,
+            clearPendingPages: () => set({ pendingPages: [] }),
         }),
         {
             name: "app-sessions",
@@ -124,6 +166,7 @@ export const useAppState = create(
                 isConnected: state.isConnected,
                 runtimeMode: state.runtimeMode,
                 synthesisInProgress: state.synthesisInProgress,
+                selectedModel: state.selectedModel,
             }),
         }
     )

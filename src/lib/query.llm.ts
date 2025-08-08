@@ -157,7 +157,8 @@ Date: ${analysisDate}
     ** call LLM
     */
     const response = await callLLM({
-        modelId: 'gemini-2.5-flash',
+        provider: 'gemini',
+        tier: 'smart',
         contents: [{ role: 'user', parts: [{ text: SYSTEM_CONFIG[MODE].prompt }] }],
         config,
         ignoreFnCallCheck: true

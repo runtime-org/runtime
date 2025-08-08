@@ -5,6 +5,9 @@ import { useAppState } from "../../hooks/useAppState";
 import SessionMenu from "../ui/SessionMenu";
 import { HiTrash } from "react-icons/hi2";
 import ConfirmModal from '../ui/ConfirmModal';
+import posthog from '../../lib/posthogSetup';
+
+const version = "0.1.0";
 
 export default function HistoryView() {
     const { openHome, sessions, clearSessions } = useAppState();
@@ -38,6 +41,7 @@ export default function HistoryView() {
     const handleClearSessions = () => {
         setShowConfirmModal(true);
         setShowMenu(false);
+        posthog.capture('delete_all_sessions', { version });
     };
 
     return (
