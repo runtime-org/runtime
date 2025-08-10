@@ -19,8 +19,7 @@ export default defineConfig(async () => ({
   build: {
     rollupOptions: {
       input: {
-        main: "index.html",
-        bar: "bar.html",
+        main: "index.html"
       },
     },
   },
