@@ -23,6 +23,7 @@ function App() {
     getWsFor,
   } = useAppState();
 
+
   /*
   ** use ref to prevent multiple connection attempts
   */

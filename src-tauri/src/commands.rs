@@ -1,23 +1,13 @@
-use crate::sketchs::{
-    BrowserConfig
+use crate::apps::call;
+use crate::browser_manager::{get_running_instance, launch_new_instance, sunset_browser_instance};
+use crate::network::{
+    create_new_page, determine_browser_type, extract_port_from_ws_url, find_free_port,
+    get_browser_info, scan_for_existing_browser_instances,
 };
 use crate::platform::detect_browsers;
-use crate::network::{
-    create_new_page, 
-    extract_port_from_ws_url, 
-    find_free_port, 
-    get_browser_info,
-    determine_browser_type, 
-    scan_for_existing_browser_instances,
-};
-use crate::browser_manager::{
-    get_running_instance, 
-    launch_new_instance, 
-    sunset_browser_instance,
-};
-use crate::skills::download_skill_json;
+use crate::sketchs::BrowserConfig;
 use crate::sketchs_browser::WebsiteSkills;
-use crate::apps::call;
+use crate::skills::download_skill_json;
 
 #[tauri::command]
 pub async fn fetch_available_browsers() -> Result<Vec<BrowserConfig>, String> {
@@ -93,7 +83,10 @@ pub async fn validate_ws_endpoint(
         }
         Err(e) => {
             println!("saved endpoint is no longer valid: {}", e);
-            Err(format!("saved browser connection is no longer available: {}", e))
+            Err(format!(
+                "saved browser connection is no longer available: {}",
+                e
+            ))
         }
     }
 }
@@ -112,14 +105,14 @@ pub async fn launch_browser(browser_path: Option<String>) -> Result<String, Stri
     };
 
     /*
-    ** try to reuse an existing instance
-    */
+     ** try to reuse an existing instance
+     */
     if let Some(ws_url) = get_running_instance(&target_browser_path).await {
         if let Ok(port_str) = extract_port_from_ws_url(&ws_url) {
             if let Ok(port) = port_str.parse::<u16>() {
                 /*
-                ** open a default page so the tab list isn't empty
-                */
+                 ** open a default page so the tab list isn't empty
+                 */
                 let _ = create_new_page(port, Some("https://www.google.com")).await;
             }
         }
@@ -127,10 +120,9 @@ pub async fn launch_browser(browser_path: Option<String>) -> Result<String, Stri
     }
 
     /*
-    ** otherwise launch fresh
-    */
-    let port =
-        find_free_port(9222).ok_or_else(|| "Failed to find a free port".to_string())?;
+     ** otherwise launch fresh
+     */
+    let port = find_free_port(9222).ok_or_else(|| "Failed to find a free port".to_string())?;
 
     match launch_new_instance(&target_browser_path, port).await {
         Ok(ws_url) => {
@@ -162,8 +154,8 @@ pub async fn force_close_browser() -> Result<(), String> {
             }
         } else {
             /*
-            ** respect external instances – put it back
-            */
+             ** respect external instances – put it back
+             */
             *managed_browser_guard = Some(instance);
         }
         Ok(())
@@ -180,33 +172,39 @@ pub async fn scan_for_existing_browsers(browser_type: String) -> Result<Option<S
 #[tauri::command]
 pub async fn debug_browser_connection(browser_path: String) -> Result<String, String> {
     let mut debug_info = Vec::new();
-    
+
     if std::path::Path::new(&browser_path).exists() {
         debug_info.push("Browser executable found".to_string());
     } else {
         return Ok("Browser executable not found at specified path".to_string());
     }
-    
+
     let browsers = detect_browsers();
     if let Some(target_browser) = browsers.iter().find(|b| b.path == browser_path) {
         debug_info.push(format!("Browser detected as: {}", target_browser.id));
-        
+
         if let Some(ws_url) = scan_for_existing_browser_instances(&target_browser.id).await {
-            debug_info.push(format!("Found existing {} instance: {}", target_browser.id, ws_url));
+            debug_info.push(format!(
+                "Found existing {} instance: {}",
+                target_browser.id, ws_url
+            ));
             return Ok(debug_info.join("\n"));
         } else {
             debug_info.push("No existing instances found".to_string());
         }
     }
-    
+
     if let Some(port) = find_free_port(9222) {
         debug_info.push(format!("Found free port: {}", port));
-        
+
         debug_info.push("Attempting to launch browser...".to_string());
-        
+
         match launch_new_instance(&browser_path, port).await {
             Ok(ws_url) => {
-                debug_info.push(format!("Successfully launched browser with WebSocket: {}", ws_url));
+                debug_info.push(format!(
+                    "Successfully launched browser with WebSocket: {}",
+                    ws_url
+                ));
 
                 let _ = sunset_browser_instance().await;
                 debug_info.push("🧹 Cleaned up test instance".to_string());
@@ -218,16 +216,16 @@ pub async fn debug_browser_connection(browser_path: String) -> Result<String, St
     } else {
         debug_info.push("No free ports available".to_string());
     }
-    
+
     Ok(debug_info.join("\n"))
 }
 
 #[tauri::command]
 pub async fn load_skills(
-    domain: &str, 
-    company: Option<String>, 
-    repo: Option<String>, 
-    branch: String
+    domain: &str,
+    company: Option<String>,
+    repo: Option<String>,
+    branch: String,
 ) -> Result<WebsiteSkills, String> {
     println!("loading skills for domain: {}", domain);
     download_skill_json(domain.to_string(), company, repo, branch).await

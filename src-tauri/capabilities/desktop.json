@@ -1,0 +1,9 @@
+{
+  "identifier": "desktop-capability",
+  "platforms": [ "macOS", "windows", "linux" ],
+  "windows": [ "main", "command_bar" ],
+  "permissions": [
+    "global-shortcut:default",
+    "positioner:default"
+  ]
+}
