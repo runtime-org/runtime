@@ -20,7 +20,6 @@ fn is_equivalent_selection(selected: &str, running: &str) -> bool {
     selected == "arc" && running == "chrome"
 }
 
-
 #[tauri::command]
 pub async fn fetch_available_browsers() -> Result<Vec<BrowserConfig>, String> {
     let browsers = detect_browsers();

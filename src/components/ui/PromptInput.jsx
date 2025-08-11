@@ -377,7 +377,7 @@ export default function PromptInput({
                           <div
                             key={`${t.title}-${t.url}-${i}`}
                             onMouseDown={() => commitPick(t)}
-                            className={`px-3 py-2 flex items-center justify-between cursor-pointer ${
+                            className={`px-3 py-1 flex items-center justify-between cursor-pointer rounded ${
                               i === highlightIdx ? "bg-[#344054]/40" : "hover:bg-[#3a3a3a]"
                             }`}
                           >
@@ -385,9 +385,9 @@ export default function PromptInput({
                               <div className="text-sm text-white truncate">{t.title}</div>
                               <div className="text-xs text-gray-400 truncate">{t.url}</div>
                             </div>
-                            <span
+                            {/* <span
                               className={`ml-3 h-2 w-2 rounded-full ${i === highlightIdx ? "bg-[#3b82f6]" : "bg-transparent"}`}
-                            />
+                            /> */}
                           </div>
                         ))
                       )}
