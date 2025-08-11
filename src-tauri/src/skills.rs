@@ -1,16 +1,15 @@
-use crate::sketchs_browser::WebsiteSkills;
 use reqwest::Client;
+use crate::sketchs_browser::WebsiteSkills;
 
 pub async fn download_skill_json(
-    domain: String,
-    company: Option<String>,
+    domain: String, 
+    company: Option<String>, 
     repo: Option<String>,
     branch: String,
 ) -> Result<WebsiteSkills, String> {
     let company: String = company.unwrap_or_else(|| "runtime-org".to_string());
     let repo: String = repo.unwrap_or_else(|| "sk".to_string());
-    let url: String =
-        format!("https://raw.githubusercontent.com/{company}/{repo}/{branch}/skills/{domain}.json");
+    let url: String = format!("https://raw.githubusercontent.com/{company}/{repo}/{branch}/skills/{domain}.json");
     println!("downloading skills from: {}", url);
     let text: String = Client::new()
         .get(url)

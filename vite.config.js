@@ -8,19 +8,21 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
 
-  clearScreen: false,
+  clearScreen: false, // prevent from obscure rust errors
   server: {
     port: 1420,
     strictPort: true,
     host: host || false,
-    hmr: host ? { protocol: "ws", host, port: 1421 } : undefined,
-    watch: { ignored: ["**/src-tauri/**"] },
-  },
-  build: {
-    rollupOptions: {
-      input: {
-        main: "index.html"
-      },
+    hmr: host
+      ? {
+          protocol: "ws",
+          host,
+          port: 1421,
+        }
+      : undefined,
+    watch: {
+      // ignore watching `src-tauri`
+      ignored: ["**/src-tauri/**"],
     },
   },
 }));

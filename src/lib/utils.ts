@@ -37,6 +37,7 @@ export function formatDateString(dateString: string) {
 export const browserIcons: Record<string, string> = {
     "chrome": "/icons/chrome.svg",
     "edge": "/icons/edge.svg",
+    "arc": "/icons/arc.svg",
     "default": "/icons/chrome.svg"
 }
 

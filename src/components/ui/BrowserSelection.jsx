@@ -71,6 +71,7 @@ export default function BrowserSelection({
       'Google Chrome': 'chrome',
       'Mozilla Firefox': 'firefox',
       'Safari': 'safari',
+      'Arc': 'arc',
       'Microsoft Edge': 'edge',
       'Opera': 'opera'
     };

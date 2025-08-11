@@ -1,14 +1,14 @@
-mod app_note;
+mod utils;
+mod skills;
 mod apps;
-mod browser_manager;
-mod commands;
+mod app_note;
 mod config;
-mod network;
-mod platform;
 mod sketchs;
 mod sketchs_browser;
-mod skills;
-mod utils;
+mod network;
+mod commands;
+mod platform;
+mod browser_manager;
 
 use commands::{
     fetch_available_browsers,
@@ -26,7 +26,6 @@ use commands::{
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .invoke_handler(tauri::generate_handler![

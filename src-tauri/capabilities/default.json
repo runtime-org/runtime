@@ -11,7 +11,6 @@
     "store:allow-set",
     "store:allow-save",
     "store:allow-keys",
-    "store:allow-delete",
-    "positioner:default"
+    "store:allow-delete"
   ]
 }

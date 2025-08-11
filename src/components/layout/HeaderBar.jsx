@@ -1,7 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
 import IconButton from "../ui/IconButton";
-import { useAppState } from "../../hooks/useAppState";
 
 HeaderBar.propTypes = {
     title: PropTypes.string.isRequired,
@@ -10,12 +9,9 @@ HeaderBar.propTypes = {
 }
 
 export default function HeaderBar({ title, leftAction, rightAction }) {
-    const { selectedModel, availableModels } = useAppState();
-    
-    const currentModel = availableModels.find(model => model.id === selectedModel);
     
     return (
-        <header className="h-12 min-h-12 max-h-12 flex items-center justify-between px-2 border-b
+        <header className="h-12 min-h-12 max-h-12 flex items-center justify-betwee px-2 border-b
                        border-[#484848]/70 backdrop-blur relative
             ">
             {
@@ -24,7 +20,7 @@ export default function HeaderBar({ title, leftAction, rightAction }) {
             <h1 className="text-lg font-medium text-white truncate">{title}</h1>
             
             {/* model selector */}
-            <div 
+            {/* <div 
                 onClick={rightAction?.onClick}
                 className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-[#323232] cursor-pointer transition-colors whitespace-nowrap flex-shrink-0"
             >
@@ -39,7 +35,7 @@ export default function HeaderBar({ title, leftAction, rightAction }) {
                 >
                     <path fillRule="evenodd" d="M12.53 16.28a.75.75 0 0 1-1.06 0l-7.5-7.5a.75.75 0 0 1 1.06-1.06L12 14.69l6.97-6.97a.75.75 0 1 1 1.06 1.06l-7.5 7.5Z" clipRule="evenodd" />
                 </svg>
-            </div>
+            </div> */}
         </header>
     )
 }
