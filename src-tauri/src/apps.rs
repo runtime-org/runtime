@@ -1,4 +1,3 @@
-
 use std::error::Error;
 use crate::app_note::{append_note, create_note};
 

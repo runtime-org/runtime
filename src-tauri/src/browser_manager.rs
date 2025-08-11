@@ -6,9 +6,7 @@ use reqwest::Client;
 use tokio::sync::Mutex;
 
 use crate::network::{
-    extract_port_from_ws_url, 
-    get_browser_websocket_url, 
-    scan_for_existing_browser_instances,
+    extract_port_from_ws_url, get_browser_websocket_url, scan_for_existing_browser_instances,
 };
 use crate::platform::detect_browsers;
 use crate::sketchs::ManageableBrowserInstance;
@@ -160,21 +158,24 @@ pub async fn launch_new_instance(
     );
     println!("allowed origins: {allowed_origins}");
 
-    let is_edge = target_browser_path
-        .to_lowercase()
-        .contains("edge")
-        || target_browser_path.to_lowercase().contains("msedge");
-    let is_chrome = target_browser_path.to_lowercase().contains("chrome");
+    let lower = target_browser_path.to_lowercase();
+    let is_edge = lower.contains("edge") || lower.contains("msedge");
+    let is_chrome = lower.contains("chrome");
+    let is_arc = lower.contains("arc");
+
+    println!("is_arc: {is_arc} running on port {port}");
 
     let mut command = Command::new(target_browser_path);
     command
         .arg(format!("--remote-debugging-port={port}"))
+        .arg("--remote-debugging-address=127.0.0.1")
         .arg(format!("--remote-allow-origins={allowed_origins}"))
         .arg("--no-first-run")
         .arg("--no-default-browser-check")
         .arg("--disable-background-timer-throttling")
         .arg("--disable-backgrounding-occluded-windows")
-        .arg("--disable-renderer-backgrounding");
+        .arg("--disable-renderer-backgrounding")
+        .arg("--enable-automation"); // for chromium forks
 
     if is_chrome {
         command
@@ -183,7 +184,6 @@ pub async fn launch_new_instance(
             .arg("--disable-sync")
             .arg("--disable-translate")
             .arg("--disable-ipc-flooding-protection");
-
         #[cfg(target_os = "windows")]
         command.arg("--user-data-dir=C:\\temp\\chrome-debug-profile");
         #[cfg(any(target_os = "macos", target_os = "linux"))]
@@ -192,31 +192,34 @@ pub async fn launch_new_instance(
         command
             .arg("--disable-background-networking")
             .arg("--disable-default-apps");
-
         #[cfg(target_os = "windows")]
         command.arg("--user-data-dir=C:\\temp\\edge-debug-profile");
         #[cfg(any(target_os = "macos", target_os = "linux"))]
         command.arg("--user-data-dir=/tmp/edge-debug-profile");
+    } else if is_arc {
+        command
+            .arg("--disable-background-networking")
+            .arg("--disable-default-apps");
+        #[cfg(target_os = "windows")]
+        command.arg("--user-data-dir=C:\\temp\\arc-debug-profile");
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
+        command.arg("--user-data-dir=/tmp/arc-debug-profile");
+
+        let program = command.get_program();
+        let args: Vec<&std::ffi::OsStr> = command.get_args().collect();
+        println!("🚀 Final Arc browser command:");
+        println!("   Program: {:?}", program);
+        println!("   Arguments: {:?}", args);
     }
 
     if is_dev {
         command
-            // .arg("--disable-web-security")
             .arg("--disable-features=VizDisplayCompositor")
-            // .arg("--ignore-certificate-errors")
             .arg("--disable-background-networking")
             .arg("--disable-default-apps")
             .arg("--allow-running-insecure-content");
     }
 
-    /*
-    ** nice visual cue in dev, blank tab in prod
-    */
-    // command.arg(if is_dev {
-    //     "https://www.google.com"
-    // } else {
-    //     "about:blank"
-    // });
 
     let mut child_process = command
         .stdout(Stdio::piped())
@@ -229,19 +232,12 @@ pub async fn launch_new_instance(
     */
     tokio::time::sleep(Duration::from_secs(2)).await;
 
-    /*
-    ** ensure it didn't bail out immediately
-    */
     match child_process.try_wait() {
         Ok(Some(status)) => {
-            return Err(format!(
-                "Browser process exited immediately with status: {status}"
-            ))
+            return Err(format!("Browser process exited immediately with status: {status}"))
         }
         Ok(None) => {}
-        Err(e) => {
-            return Err(format!("Failed to check browser process status: {e}"));
-        }
+        Err(e) => return Err(format!("Failed to check browser process status: {e}")),
     }
 
     /*
@@ -270,6 +266,10 @@ pub async fn launch_new_instance(
     */
     match get_browser_websocket_url(port, 20, 500).await {
         Ok(ws_url) => {
+            if is_arc {
+                let _ = crate::network::create_new_page(port, Some("https://www.google.com")).await;
+            }
+
             let mut managed_browser_guard = MANAGED_BROWSER.lock().await;
             *managed_browser_guard = Some(ManageableBrowserInstance {
                 path: target_browser_path.to_string(),
@@ -284,9 +284,7 @@ pub async fn launch_new_instance(
         Err(e) => {
             let _ = child_process.kill();
             let _ = child_process.wait();
-            Err(format!(
-                "Failed to establish debugging connection: {e}"
-            ))
+            Err(format!("Failed to establish debugging connection: {e}"))
         }
     }
 }

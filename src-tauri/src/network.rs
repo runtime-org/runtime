@@ -103,6 +103,8 @@ pub async fn get_browser_info(port: &str) -> Result<(String, String), String> {
 pub fn determine_browser_type(browser_string: &str, user_agent: &str) -> String {
     if browser_string.contains("Edg/") || user_agent.contains("Edg/") {
         "edge".to_string()
+    } else if browser_string.contains("Arc/") || user_agent.contains("Arc/") {
+        "arc".to_string()
     } else if browser_string.contains("Chrome/") || user_agent.contains("Chrome/") {
         "chrome".to_string()
     } else {

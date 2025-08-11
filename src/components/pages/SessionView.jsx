@@ -19,7 +19,7 @@ import {
 import { runWorkflow } from '../../lib/workflow.runner';
 import { taskEventEmitter } from '../../lib/emitters';
 import puppeteer from 'puppeteer-core/lib/esm/puppeteer/puppeteer-core-browser.js';
-import { createPagePool } from '../../lib/page.manager';
+import posthog from '../../lib/posthogSetup';
 
 SessionView.propTypes = {
   browserInstance: PropTypes.object,
@@ -319,6 +319,15 @@ export default function SessionView({ browserInstance, isConnected, connectBrows
     cancelRef.current.cancelled = false;
 
     console.log("pages", pages);
+
+    /*
+    ** posthog the search
+    */
+    posthog.capture('search', {
+      queryLength: rawText.length,
+      pagesLength: pages.length,
+      runtimeMode: runtimeMode
+    });
 
     try {
       /*

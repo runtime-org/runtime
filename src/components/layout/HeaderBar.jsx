@@ -1,7 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
 import IconButton from "../ui/IconButton";
-import { useAppState } from "../../hooks/useAppState";
 
 HeaderBar.propTypes = {
     title: PropTypes.string.isRequired,
@@ -10,12 +9,9 @@ HeaderBar.propTypes = {
 }
 
 export default function HeaderBar({ title, leftAction, rightAction }) {
-    const { selectedModel, availableModels } = useAppState();
-    
-    const currentModel = availableModels.find(model => model.id === selectedModel);
     
     return (
-        <header className="h-12 min-h-12 max-h-12 flex items-center justify-between px-2 border-b
+        <header className="h-12 min-h-12 max-h-12 flex items-center justify-betwee px-2 border-b
                        border-[#484848]/70 backdrop-blur relative
             ">
             {

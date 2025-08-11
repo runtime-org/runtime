@@ -46,4 +46,3 @@ pub struct PuppeteerExecutionResult {
     pub current_url: Option<String>,
     pub page_context: Option<serde_json::Value>, 
 }
-

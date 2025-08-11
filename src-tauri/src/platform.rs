@@ -24,6 +24,14 @@ pub fn detect_browsers() -> Vec<BrowserConfig> {
     if let Some(browser) = check_browser("edge", "Microsoft Edge", &edge_paths.iter().map(|s|s.as_str()).collect::<Vec<_>>()) {
         browsers.push(browser);
     }
+
+    let arc_paths = [
+        format!("{}\\Arc\\Application\\Arc.exe", local_app_data),
+        format!("{}\\Arc\\Arc.exe", local_app_data),
+    ];
+    if let Some(browser) = check_browser("arc", "Arc", &arc_paths.iter().map(|s|s.as_str()).collect::<Vec<_>>()) {
+        browsers.push(browser);
+    }
     
     browsers
 }
@@ -42,22 +50,31 @@ pub fn detect_browsers() -> Vec<BrowserConfig> {
     if let Some(browser) = check_browser("edge", "Microsoft Edge", &edge_paths.iter().map(|s|s.as_str()).collect::<Vec<_>>()) {
         browsers.push(browser);
     }
+
+    let arc_paths = [format!("{}/Arc.app/Contents/MacOS/Arc", app_dir)];
+    if let Some(browser) = check_browser("arc", "Arc", &arc_paths.iter().map(|s|s.as_str()).collect::<Vec<_>>()) {
+        browsers.push(browser);
+    }
     
     browsers
 }
 
 #[cfg(target_os = "linux")]
 pub fn detect_browsers() -> Vec<BrowserConfig> {
+    
     let mut browsers: Vec<BrowserConfig> = Vec::new();
     
     let paths = [
-        // common binareis could be symlinks
+        // common binaries could be symlinks
         ("/usr/bin/google-chrome-stable", "chrome", "Google Chrome Stable"),
         ("/usr/bin/google-chrome", "chrome", "Google Chrome"),
         ("/usr/bin/microsoft-edge", "edge", "Microsoft Edge"),
         ("/usr/bin/microsoft-edge-stable", "edge", "Microsoft Edge Stable"),
         ("/usr/bin/microsoft-edge-beta", "edge", "Microsoft Edge Beta"),
-        ("/usr/bin/microsoft-edge-dev", "edge", "Microsoft Edge Dev")
+        ("/usr/bin/microsoft-edge-dev", "edge", "Microsoft Edge Dev"),
+        ("/usr/bin/arc", "arc", "Arc"),
+        ("/usr/local/bin/arc", "arc", "Arc"),
+        ("/opt/arc/arc", "arc", "Arc"),
     ];
 
     for (path_str, id, name) in paths.iter() {
