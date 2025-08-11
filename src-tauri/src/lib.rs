@@ -11,9 +11,16 @@ mod skills;
 mod utils;
 
 use commands::{
-    call_app, debug_browser_connection, disconnect_from_browser, fetch_available_browsers,
-    force_close_browser, launch_browser, load_skills, scan_for_existing_browsers,
-    validate_connection, validate_ws_endpoint,
+    fetch_available_browsers,
+    launch_browser,
+    disconnect_from_browser,
+    force_close_browser,
+    validate_connection,
+    validate_ws_endpoint,
+    scan_for_existing_browsers,
+    debug_browser_connection,
+    load_skills,
+    call_app
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

@@ -4,10 +4,14 @@ use crate::network::{
     create_new_page, determine_browser_type, extract_port_from_ws_url, find_free_port,
     get_browser_info, scan_for_existing_browser_instances,
 };
-use crate::platform::detect_browsers;
-use crate::sketchs::BrowserConfig;
-use crate::sketchs_browser::WebsiteSkills;
+use crate::browser_manager::{
+    get_running_instance, 
+    launch_new_instance, 
+    sunset_browser_instance,
+};
 use crate::skills::download_skill_json;
+use crate::sketchs_browser::WebsiteSkills;
+use crate::apps::call;
 
 #[tauri::command]
 pub async fn fetch_available_browsers() -> Result<Vec<BrowserConfig>, String> {

@@ -39,7 +39,6 @@ pub fn check_browser(id: &str, name: &str, paths: &[&str]) -> Option<BrowserConf
 //     let text = tauri::async_runtime::spawn_blocking(move || {
 //         let extractor = Extractor::new()
 //             .set_extract_string_max_length(20_000_000); // 20MB
-
 //         extractor
 //             .extract_bytes_to_string(&bytes)
 //             .map(|(t, _meta)| t)
@@ -50,3 +49,4 @@ pub fn check_browser(id: &str, name: &str, paths: &[&str]) -> Option<BrowserConf
 //     Ok(text)
 // }
 // }
+
