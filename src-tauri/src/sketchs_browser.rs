@@ -29,3 +29,4 @@ pub struct SkillStep {
     #[serde(default)]
     pub output_key: Option<String>,
 }
+

@@ -1,5 +1,5 @@
-use crate::sketchs::BrowserConfig;
 use std::path::PathBuf;
+use crate::sketchs::BrowserConfig;
 
 pub fn check_browser(id: &str, name: &str, paths: &[&str]) -> Option<BrowserConfig> {
     for path_str in paths {
@@ -10,12 +10,13 @@ pub fn check_browser(id: &str, name: &str, paths: &[&str]) -> Option<BrowserConf
             return Some(BrowserConfig {
                 id: id.to_string(),
                 name: name.to_string(),
-                path: path.to_string_lossy().to_string(),
+                path: path.to_string_lossy().to_string()
             });
         }
     }
     None
 }
+
 
 // pub async fn download_and_extract(url: String) -> Result<String, String> {
 //     /*
@@ -28,7 +29,7 @@ pub fn check_browser(id: &str, name: &str, paths: &[&str]) -> Option<BrowserConf
 //         .map_err(|e| e.to_string())?
 //         .error_for_status()
 //         .map_err(|e| e.to_string())?;
-
+    
 //     let bytes = response
 //         .bytes()
 //         .await
@@ -48,5 +49,4 @@ pub fn check_browser(id: &str, name: &str, paths: &[&str]) -> Option<BrowserConf
 //     .map_err(|e| e.to_string())??;
 
 //     Ok(text)
-// }
 // }

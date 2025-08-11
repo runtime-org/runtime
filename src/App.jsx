@@ -23,13 +23,6 @@ function App() {
     getWsFor,
   } = useAppState();
 
-
-  /*
-  ** use ref to prevent multiple connection attempts
-  */
-  const connectionInProgress = useRef(false);
-  const reconnectTimeoutRef = useRef(null);
-
   /*
   ** connect pptr
   */

@@ -1,6 +1,6 @@
-use reqwest::Client;
 use std::net::TcpListener;
 use std::time::Duration;
+use reqwest::Client;
 
 pub fn find_free_port(start_port: u16) -> Option<u16> {
     let mut port = start_port;
@@ -15,8 +15,8 @@ pub fn find_free_port(start_port: u16) -> Option<u16> {
     }
 
     /*
-     ** final fallback – sometimes this gives a random free port
-     */
+    ** final fallback – sometimes this gives a random free port
+    */
     if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{start_port}")) {
         if let Ok(addr) = listener.local_addr() {
             return Some(addr.port());
@@ -26,10 +26,11 @@ pub fn find_free_port(start_port: u16) -> Option<u16> {
     None
 }
 
-pub async fn scan_for_existing_browser_instances(target_browser_type: &str) -> Option<String> {
-    let ports_to_scan = [
-        9222, 9223, 9224, 9225, 9226, 9227, 9228, 9229, 9230, 9231, 9232,
-    ];
+pub async fn scan_for_existing_browser_instances(
+    target_browser_type: &str,
+) -> Option<String> {
+    let ports_to_scan =
+        [9222, 9223, 9224, 9225, 9226, 9227, 9228, 9229, 9230, 9231, 9232];
 
     for port in ports_to_scan {
         match get_browser_info(&port.to_string()).await {
@@ -39,7 +40,9 @@ pub async fn scan_for_existing_browser_instances(target_browser_type: &str) -> O
                 if detected == target_browser_type {
                     match get_browser_websocket_url(port, 3, 500).await {
                         Ok(ws_url) => {
-                            println!("Found existing {detected} instance on port {port}: {ws_url}");
+                            println!(
+                                "Found existing {detected} instance on port {port}: {ws_url}"
+                            );
                             return Some(ws_url);
                         }
                         Err(_) => { /* keep scanning */ }
@@ -90,10 +93,7 @@ pub async fn get_browser_info(port: &str) -> Result<(String, String), String> {
         .map_err(|e| format!("Failed to parse JSON: {e}"))?;
 
     let browser_string = version_data["Browser"].as_str().unwrap_or("").to_string();
-    let user_agent = version_data["User-Agent"]
-        .as_str()
-        .unwrap_or("")
-        .to_string();
+    let user_agent = version_data["User-Agent"].as_str().unwrap_or("").to_string();
 
     println!("Browser info: {browser_string}");
 
@@ -140,8 +140,8 @@ pub async fn get_browser_websocket_url(
             }
             Ok(_) => {
                 /*
-                 ** continue with the next attempt
-                 */
+                ** continue with the next attempt
+                */
                 println!("attempt {attempt}/{max_retries}: non-success response");
             }
             Err(e) => {
@@ -187,9 +187,7 @@ pub async fn create_new_page(port: u16, url: Option<&str>) -> Result<String, Str
         Ok(resp) => {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
-            Err(format!(
-                "Failed to create new page. Status: {status}, Body: {body}"
-            ))
+            Err(format!("Failed to create new page. Status: {status}, Body: {body}"))
         }
         Err(e) => Err(format!("Failed to create new page: {e}")),
     }
