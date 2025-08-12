@@ -42,8 +42,8 @@ pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
     if let Some(instance) = &mut *managed_browser_guard {
         if instance.path == target_browser_path {
             /*
-            ** is the child process still running?
-            */
+             ** is the child process still running?
+             */
             if let Some(ref mut child) = instance.child {
                 match child.try_wait() {
                     Ok(Some(_)) => {
@@ -52,8 +52,10 @@ pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
                     }
                     Ok(None) => {
                         println!("reusing the runtime instance at {}", instance.port);
-                        let client =
-                            Client::builder().timeout(Duration::from_secs(2)).build().ok()?;
+                        let client = Client::builder()
+                            .timeout(Duration::from_secs(2))
+                            .build()
+                            .ok()?;
                         let version_url =
                             format!("http://127.0.0.1:{}/json/version", instance.port);
                         match client.get(&version_url).send().await {
@@ -79,13 +81,14 @@ pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
                 }
             } else {
                 /*
-                ** ping endpoint directly
-                */
+                 ** ping endpoint directly
+                 */
                 println!("instance had no child handle; checking endpoint availability...");
-                let client =
-                    Client::builder().timeout(Duration::from_secs(2)).build().ok()?;
-                let version_url =
-                    format!("http://127.0.0.1:{}/json/version", instance.port);
+                let client = Client::builder()
+                    .timeout(Duration::from_secs(2))
+                    .build()
+                    .ok()?;
+                let version_url = format!("http://127.0.0.1:{}/json/version", instance.port);
                 match client.get(&version_url).send().await {
                     Ok(resp) if resp.status().is_success() => {
                         return Some(instance.ws_url.clone());
@@ -97,9 +100,12 @@ pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
             }
         } else {
             /*
-            ** shut the old one down first
-            */
-            println!("Switching browser. Closing previous instance: {}", instance.path);
+             ** shut the old one down first
+             */
+            println!(
+                "Switching browser. Closing previous instance: {}",
+                instance.path
+            );
             if let Some(mut child) = instance.child.take() {
                 let _ = child.kill();
                 let _ = child.wait();
@@ -109,17 +115,12 @@ pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
     }
 
     /*
-    ** reconnect to the existing instance
-    */
+     ** reconnect to the existing instance
+     */
     let browsers = detect_browsers();
     if let Some(target_browser) = browsers.iter().find(|b| b.path == target_browser_path) {
-        if let Some(ws_url) =
-            scan_for_existing_browser_instances(&target_browser.id).await
-        {
-            let port = extract_port_from_ws_url(&ws_url)
-                .ok()?
-                .parse()
-                .ok()?;
+        if let Some(ws_url) = scan_for_existing_browser_instances(&target_browser.id).await {
+            let port = extract_port_from_ws_url(&ws_url).ok()?.parse().ok()?;
             *managed_browser_guard = Some(ManageableBrowserInstance {
                 child: None,
                 path: target_browser_path.to_string(),
@@ -142,16 +143,11 @@ pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
 /*
 ** launch a fresh instance
 */
-pub async fn launch_new_instance(
-    target_browser_path: &str,
-    port: u16,
-) -> Result<String, String> {
+pub async fn launch_new_instance(target_browser_path: &str, port: u16) -> Result<String, String> {
     let allowed_origins = get_allowed_origins();
     let is_dev = cfg!(debug_assertions);
 
-    println!(
-        "launching browser: {target_browser_path} with --remote-debugging-port={port}"
-    );
+    println!("launching browser: {target_browser_path} with --remote-debugging-port={port}");
     println!(
         "environment: {} mode",
         if is_dev { "development" } else { "production" }
@@ -220,7 +216,6 @@ pub async fn launch_new_instance(
             .arg("--allow-running-insecure-content");
     }
 
-
     let mut child_process = command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -228,21 +223,23 @@ pub async fn launch_new_instance(
         .map_err(|e| format!("failed to launch browser: {e}"))?;
 
     /*
-    ** give the browser a moment to finish booting
-    */
+     ** give the browser a moment to finish booting
+     */
     tokio::time::sleep(Duration::from_secs(2)).await;
 
     match child_process.try_wait() {
         Ok(Some(status)) => {
-            return Err(format!("Browser process exited immediately with status: {status}"))
+            return Err(format!(
+                "Browser process exited immediately with status: {status}"
+            ))
         }
         Ok(None) => {}
         Err(e) => return Err(format!("Failed to check browser process status: {e}")),
     }
 
     /*
-    ** quick health-check of /json/version for clearer error reporting
-    */
+     ** quick health-check of /json/version for clearer error reporting
+     */
     let version_url = format!("http://127.0.0.1:{port}/json/version");
     let client = Client::builder()
         .timeout(Duration::from_secs(5))
@@ -262,8 +259,8 @@ pub async fn launch_new_instance(
     }
 
     /*
-    ** finally, fetch the WebSocket URL
-    */
+     ** finally, fetch the WebSocket URL
+     */
     match get_browser_websocket_url(port, 20, 500).await {
         Ok(ws_url) => {
             if is_arc {
@@ -307,10 +304,7 @@ pub async fn sunset_browser_instance() -> Result<(), String> {
                     .is_none()
                 {
                     if let Err(e) = child.kill() {
-                        eprintln!(
-                            "failed to kill browser process {}: {}",
-                            instance.path, e
-                        );
+                        eprintln!("failed to kill browser process {}: {}", instance.path, e);
                     }
                     match child.wait() {
                         Ok(status) => println!(

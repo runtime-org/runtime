@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use crate::sketchs::BrowserConfig;
+use std::path::PathBuf;
 
 pub fn check_browser(id: &str, name: &str, paths: &[&str]) -> Option<BrowserConfig> {
     for path_str in paths {
@@ -10,7 +10,7 @@ pub fn check_browser(id: &str, name: &str, paths: &[&str]) -> Option<BrowserConf
             return Some(BrowserConfig {
                 id: id.to_string(),
                 name: name.to_string(),
-                path: path.to_string_lossy().to_string()
+                path: path.to_string_lossy().to_string(),
             });
         }
     }

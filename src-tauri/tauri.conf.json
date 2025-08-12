@@ -26,6 +26,7 @@
     }
   },
   "bundle": {
+    "createUpdaterArtifacts": true,
     "active": true,
     "targets": "all",
     "icon": [
@@ -39,5 +40,13 @@
       "src/scripts/*.scpt",
       "scripts/setup_ollama.sh"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM5OEVERDk0NkYxQTcwRkUKUldUK2NCcHZsTjJPT2R1dk56bkdKSXZTNGFMWFNNYU1xQ2w0TVRiand0N21rTG9lZGFrVmVsYUUK",
+      "endpoints": [
+        "https://github.com/runtime-org/runtime/releases/latest/download/latest.json"
+      ]
+    }
   }
 }
