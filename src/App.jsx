@@ -30,12 +30,6 @@ function App() {
   const reconnectTimeoutRef = useRef(null);
 
   /*
-  ** use ref to prevent multiple connection attempts
-  */
-  const connectionInProgress = useRef(false);
-  const reconnectTimeoutRef = useRef(null);
-
-  /*
   ** connect pptr
   */
   const connectPuppeteer = useCallback(async (ws, retries = 2) => {
