@@ -1,5 +1,5 @@
 use crate::apps::call;
-use crate::browser_manager::{get_running_instance, launch_new_instance, sunset_browser_instance, MANAGED_BROWSER};
+use crate::browser_manager::{launch_new_instance, sunset_browser_instance, MANAGED_BROWSER};
 use crate::network::{
     create_new_page, determine_browser_type, extract_port_from_ws_url, find_free_port,
     get_browser_info, get_browser_websocket_url, scan_for_existing_browser_instances,

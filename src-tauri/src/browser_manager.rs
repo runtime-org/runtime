@@ -11,8 +11,7 @@ use crate::network::{
 use crate::platform::detect_browsers;
 use crate::sketchs::ManageableBrowserInstance;
 
-pub static MANAGED_BROWSER: Lazy<Mutex<Option<ManageableBrowserInstance>>> =
-    Lazy::new(|| Mutex::new(None));
+pub static MANAGED_BROWSER: Lazy<Mutex<Option<ManageableBrowserInstance>>> = Lazy::new(|| Mutex::new(None));
 
 fn get_allowed_origins() -> String {
     let is_dev = cfg!(debug_assertions);
@@ -36,6 +35,7 @@ fn get_allowed_origins() -> String {
     }
 }
 
+#[allow(dead_code)]
 pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
     let mut managed_browser_guard = MANAGED_BROWSER.lock().await;
 
