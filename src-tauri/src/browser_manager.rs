@@ -144,7 +144,6 @@ pub async fn get_running_instance(target_browser_path: &str) -> Option<String> {
 ** launch a fresh instance
 */
 pub async fn launch_new_instance(target_browser_path: &str, port: u16) -> Result<String, String> {
-    let allowed_origins = get_allowed_origins();
     let is_dev = cfg!(debug_assertions);
 
     println!("launching browser: {target_browser_path} with --remote-debugging-port={port}");
@@ -152,79 +151,45 @@ pub async fn launch_new_instance(target_browser_path: &str, port: u16) -> Result
         "environment: {} mode",
         if is_dev { "development" } else { "production" }
     );
-    println!("allowed origins: {allowed_origins}");
+    println!("allowed origins: {}", get_allowed_origins());
 
     let lower = target_browser_path.to_lowercase();
     let is_edge = lower.contains("edge") || lower.contains("msedge");
     let is_chrome = lower.contains("chrome");
     let is_arc = lower.contains("arc");
 
-    println!("is_arc: {is_arc} running on port {port}");
-
     let mut command = Command::new(target_browser_path);
     command
         .arg(format!("--remote-debugging-port={port}"))
         .arg("--remote-debugging-address=127.0.0.1")
-        .arg(format!("--remote-allow-origins={allowed_origins}"))
+        .arg(format!("--remote-allow-origins={}", get_allowed_origins()))
         .arg("--no-first-run")
         .arg("--no-default-browser-check")
         .arg("--disable-background-timer-throttling")
         .arg("--disable-backgrounding-occluded-windows")
         .arg("--disable-renderer-backgrounding")
-        .arg("--enable-automation"); // for chromium forks
+        .arg("--enable-automation");
 
     if is_chrome {
-        command
-            .arg("--disable-background-networking")
-            .arg("--disable-default-apps")
-            .arg("--disable-sync")
-            .arg("--disable-translate")
-            .arg("--disable-ipc-flooding-protection");
-        #[cfg(target_os = "windows")]
-        command.arg("--user-data-dir=C:\\temp\\chrome-debug-profile");
         #[cfg(any(target_os = "macos", target_os = "linux"))]
         command.arg("--user-data-dir=/tmp/chrome-debug-profile");
     } else if is_edge {
-        command
-            .arg("--disable-background-networking")
-            .arg("--disable-default-apps");
-        #[cfg(target_os = "windows")]
-        command.arg("--user-data-dir=C:\\temp\\edge-debug-profile");
         #[cfg(any(target_os = "macos", target_os = "linux"))]
         command.arg("--user-data-dir=/tmp/edge-debug-profile");
     } else if is_arc {
-        command
-            .arg("--disable-background-networking")
-            .arg("--disable-default-apps");
-        #[cfg(target_os = "windows")]
-        command.arg("--user-data-dir=C:\\temp\\arc-debug-profile");
         #[cfg(any(target_os = "macos", target_os = "linux"))]
         command.arg("--user-data-dir=/tmp/arc-debug-profile");
-
-        let program = command.get_program();
-        let args: Vec<&std::ffi::OsStr> = command.get_args().collect();
-        println!("🚀 Final Arc browser command:");
-        println!("   Program: {:?}", program);
-        println!("   Arguments: {:?}", args);
     }
 
-    if is_dev {
-        command
-            .arg("--disable-features=VizDisplayCompositor")
-            .arg("--disable-background-networking")
-            .arg("--disable-default-apps")
-            .arg("--allow-running-insecure-content");
-    }
-
+    /*
+     ** give the browser a moment to finish booting
+     */
     let mut child_process = command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| format!("failed to launch browser: {e}"))?;
 
-    /*
-     ** give the browser a moment to finish booting
-     */
     tokio::time::sleep(Duration::from_secs(2)).await;
 
     match child_process.try_wait() {

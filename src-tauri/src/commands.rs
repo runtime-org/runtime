@@ -1,18 +1,38 @@
 use crate::apps::call;
-use crate::browser_manager::{get_running_instance, launch_new_instance, sunset_browser_instance};
+use crate::browser_manager::{get_running_instance, launch_new_instance, sunset_browser_instance, MANAGED_BROWSER};
 use crate::network::{
     create_new_page, determine_browser_type, extract_port_from_ws_url, find_free_port,
-    get_browser_info, scan_for_existing_browser_instances,
+    get_browser_info, get_browser_websocket_url, scan_for_existing_browser_instances,
 };
 use crate::platform::detect_browsers;
-use crate::sketchs::BrowserConfig;
+use crate::sketchs::{BrowserConfig, ManageableBrowserInstance};
 use crate::sketchs_browser::WebsiteSkills;
 use crate::skills::download_skill_json;
 
-fn is_equivalent_selection(selected: &str, running: &str) -> bool {
-    if selected == running {
-        return true;
+const CHROME_PORT: u16 = 9522;
+const EDGE_PORT:   u16 = 9523;
+const ARC_PORT:    u16 = 9524;
+
+fn browser_id_for_path(path: &str) -> &'static str {
+    let lower = path.to_lowercase();
+    if lower.contains("edge") || lower.contains("msedge") {
+        "edge"
+    } else if lower.contains("arc") {
+        "arc"
+    } else {
+        "chrome"
     }
+}
+fn static_port_for(id: &str) -> u16 {
+    match id {
+        "edge" => EDGE_PORT,
+        "arc"  => ARC_PORT,
+        _      => CHROME_PORT,
+    }
+}
+
+fn is_equivalent_selection(selected: &str, running: &str) -> bool {
+    if selected == running { return true; }
     selected == "arc" && running == "chrome"
 }
 
@@ -30,12 +50,8 @@ pub async fn fetch_available_browsers() -> Result<Vec<BrowserConfig>, String> {
 }
 
 #[tauri::command]
-pub async fn validate_connection(
-    ws_endpoint: String,
-    selected_browser_path: String,
-) -> Result<String, String> {
+pub async fn validate_connection(ws_endpoint: String, selected_browser_path: String) -> Result<String, String> {
     let port = extract_port_from_ws_url(&ws_endpoint)?;
-
     let (browser_string, user_agent) = get_browser_info(&port).await?;
     let running_browser_type = determine_browser_type(&browser_string, &user_agent);
 
@@ -116,48 +132,80 @@ pub async fn launch_browser(browser_path: Option<String>) -> Result<String, Stri
             .ok_or_else(|| "No browser found".to_string())?
     };
 
+    let selected_id = browser_id_for_path(&target_browser_path);
+    let port = static_port_for(selected_id);
+
     /*
-     ** try to reuse an existing instance
+     ** close any managed instance to free the static port.
      */
-    if let Some(ws_url) = get_running_instance(&target_browser_path).await {
-        if let Ok(port_str) = extract_port_from_ws_url(&ws_url) {
-            if let Ok(port) = port_str.parse::<u16>() {
-                let _ = create_new_page(port, Some("https://www.google.com")).await;
+    {
+        let mut guard = MANAGED_BROWSER.lock().await;
+        if let Some(mut inst) = guard.take() {
+            if inst.path != target_browser_path || inst.port != port {
+                if let Some(mut child) = inst.child.take() {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                }
+            } else {
+                *guard = Some(inst);
             }
         }
-        return Ok(ws_url);
     }
 
     /*
-     ** Force Arc => 9222, others => first free from 9222 upward
+     ** probe the static port (is anything already listening?)
      */
-    let is_arc = target_browser_path.to_lowercase().contains("arc");
-    let port = if is_arc {
-        match get_browser_info("9222").await {
-            Ok((browser_string, _ua)) => {
-                if let Some(ws) = scan_for_existing_browser_instances("arc").await {
-                    return Ok(ws);
+    match get_browser_info(&port.to_string()).await {
+        Ok((browser_string, user_agent)) => {
+            let running = determine_browser_type(&browser_string, &user_agent);
+            if is_equivalent_selection(selected_id, &running) {
+                /*
+                 ** reuse existing instance on the static port
+                 */
+                let ws_url = get_browser_websocket_url(port, 20, 500)
+                    .await
+                    .map_err(|e| format!("Failed to obtain DevTools websocket: {e}"))?;
+
+                /*
+                 ** remember (not launched by us)
+                 */
+                {
+                    let mut managed = MANAGED_BROWSER.lock().await;
+                    *managed = Some(ManageableBrowserInstance {
+                        path: target_browser_path.clone(),
+                        port,
+                        ws_url: ws_url.clone(),
+                        child: None,
+                        launched_by_app: false,
+                    });
                 }
+                let _ = create_new_page(port, Some("https://www.google.com")).await;
+
+                return Ok(ws_url);
+            } else {
                 return Err(format!(
-                    "Port 9222 already in use by: {browser_string}. Close it and retry Arc."
+                    "Static port {port} is already occupied by another browser ({running}). Close it and retry."
                 ));
             }
-            Err(_) => 9222,
         }
-    } else {
-        find_free_port(9222).ok_or_else(|| "Failed to find a free port".to_string())?
-    };
+        Err(_) => {
+            /*
+             ** nothing on that port — proceed to launch a fresh instance on it
+             */
+        }
+    }
 
     /*
-     ** Launch
+     ** launch on the static port
      */
     match launch_new_instance(&target_browser_path, port).await {
         Ok(ws_url) => {
-            if !is_arc {
-                if let Ok(pstr) = extract_port_from_ws_url(&ws_url) {
-                    if let Ok(p) = pstr.parse::<u16>() {
-                        let _ = create_new_page(p, Some("https://www.google.com")).await;
-                    }
+            /*
+             ** starter tab (keeps process alive / makes pages() non-empty)
+             */
+            if let Ok(pstr) = extract_port_from_ws_url(&ws_url) {
+                if let Ok(p) = pstr.parse::<u16>() {
+                    let _ = create_new_page(p, Some("https://www.google.com")).await;
                 }
             }
             Ok(ws_url)
