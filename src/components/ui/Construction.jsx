@@ -219,7 +219,7 @@ export default function Construction({ activeTab, tasks = [] }) {
           <div className="relative">
             <div
               ref={scrollRef}
-              className="max-h-[200px] overflow-y-auto pr-1 bg-[#202121]/20 border 
+              className="max-h-[200px] overflow-y-auto pr-1 bg-[#202121]/20 border scrollbox
                          border-zinc-700/40 rounded-[14px] px-2 py-1"
             >
               {tasks.map(renderPlanTimeLine)}
@@ -230,7 +230,7 @@ export default function Construction({ activeTab, tasks = [] }) {
           </div>
         )
       ) : allTabs.length ? (
-        <div className="max-h-[200px] overflow-y-auto flex flex-col gap-1 mb-4 border
+        <div className="max-h-[200px] overflow-y-auto flex flex-col gap-1 mb-4 border scrollbox
                         border-zinc-700/40 rounded-[14px] px-2 py-1">
           {allTabs.map(renderTabCard)}
         </div>
