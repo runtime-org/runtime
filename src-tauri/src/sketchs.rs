@@ -14,6 +14,7 @@ pub struct ManageableBrowserInstance {
     pub child: Option<Child>,
     pub path: String,
     pub port: u16,
+    #[allow(dead_code)]
     pub ws_url: String,
     pub launched_by_app: bool,
 }
