@@ -360,6 +360,281 @@
           ]
         }
       ]
+    },
+    {
+      "domain": ["docs.google.com/spreadsheets", "sheets.google.com"],
+      "skills": [
+        {
+          "name": "open_spreadsheet",
+          "description": "Open a Google Sheets URL and wait for the grid to be ready.",
+          "input": { "url": "string" },
+          "output": "status",
+          "steps": [
+            { "action": "navigate_to_url",   "url": "{{url}}" },
+            { "action": "wait_for_selector", "selector": "[role='grid']" },
+            { "action": "extract_fields",    "selector": "title::text", "output_key": "status" }
+          ]
+        },
+
+        {
+          "name": "create_new_sheet_tab",
+          "description": "Add a new sheet (tab) in the current spreadsheet. Optional name: if provided, rename immediately.",
+          "input": { "name": "string?" },
+          "output": "sheet_name",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "[aria-label='Add Sheet']" },
+            { "action": "click",             "selector": "[aria-label='Add Sheet']" },
+            { "action": "wait_for_selector", "selector": "[role='tab'][aria-selected='true']" },
+            { "action": "conditional",
+              "if": "{{name}}",
+              "then": [
+                { "action": "double_click", "selector": "[role='tab'][aria-selected='true']" },
+                { "action": "wait_for_selector", "selector": "input[aria-label='Sheet name']" },
+                { "action": "type", "selector": "input[aria-label='Sheet name']", "input_key": "name", "replace": true },
+                { "action": "press_enter" }
+              ]
+            },
+            { "action": "extract_fields", "selector": "[role='tab'][aria-selected='true']::text", "output_key": "sheet_name" }
+          ]
+        },
+
+        {
+          "name": "select_range",
+          "description": "Select a range using the Name box (e.g., 'A1', 'A1:C10', 'A:A', '1:1').",
+          "input": { "range": "string" },
+          "output": "selected_range",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "input[aria-label='Name box']" },
+            { "action": "click",             "selector": "input[aria-label='Name box']" },
+            { "action": "type",              "selector": "input[aria-label='Name box']", "input_key": "range", "replace": true },
+            { "action": "press_enter" },
+            { "action": "extract_fields",    "selector": "input[aria-label='Name box']::value", "output_key": "selected_range" }
+          ]
+        },
+
+        {
+          "name": "set_cell_value",
+          "description": "Set a single cell value using the Name box + Formula bar. Overwrites existing content.",
+          "input": { "cell": "string", "value": "string" },
+          "output": "result",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "input[aria-label='Name box']" },
+            { "action": "click",             "selector": "input[aria-label='Name box']" },
+            { "action": "type",              "selector": "input[aria-label='Name box']", "input_key": "cell", "replace": true },
+            { "action": "press_enter" },
+
+            { "action": "wait_for_selector", "selector": "[aria-label='Formula bar']" },
+            { "action": "click",             "selector": "[aria-label='Formula bar']" },
+            { "action": "type",              "selector": "[aria-label='Formula bar']", "input_key": "value", "replace": true },
+            { "action": "press_enter" },
+
+            { "action": "extract_fields", "selector": "[aria-label='Formula bar']::text", "output_key": "result" }
+          ]
+        },
+
+        {
+          "name": "set_formula",
+          "description": "Insert a formula into a single cell (e.g., '=SUM(A2:A10)').",
+          "input": { "cell": "string", "formula": "string" },
+          "output": "result",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "input[aria-label='Name box']" },
+            { "action": "click",             "selector": "input[aria-label='Name box']" },
+            { "action": "type",              "selector": "input[aria-label='Name box']", "input_key": "cell", "replace": true },
+            { "action": "press_enter" },
+
+            { "action": "wait_for_selector", "selector": "[aria-label='Formula bar']" },
+            { "action": "click",             "selector": "[aria-label='Formula bar']" },
+            { "action": "type",              "selector": "[aria-label='Formula bar']", "input_key": "formula", "replace": true },
+            { "action": "press_enter" },
+
+            { "action": "extract_fields", "selector": "[aria-label='Formula bar']::text", "output_key": "result" }
+          ]
+        },
+
+        {
+          "name": "get_cell_value",
+          "description": "Read a single cell's value by selecting it and reading the Formula bar (shows computed value for values, the formula for formulas).",
+          "input": { "cell": "string" },
+          "output": "cell_value",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "input[aria-label='Name box']" },
+            { "action": "click",             "selector": "input[aria-label='Name box']" },
+            { "action": "type",              "selector": "input[aria-label='Name box']", "input_key": "cell", "replace": true },
+            { "action": "press_enter" },
+            { "action": "wait_for_selector", "selector": "[aria-label='Formula bar']" },
+            { "action": "extract_fields",    "selector": "[aria-label='Formula bar']::text", "output_key": "cell_value" }
+          ]
+        },
+
+        {
+          "name": "apply_basic_formatting",
+          "description": "Apply simple formatting to a selected range using toolbar buttons. Supported: bold, italic, underline, fill_color (named), number_format (e.g., 'Percent'). Requires the range to be selected first.",
+          "input": {
+            "bold": "boolean?",
+            "italic": "boolean?",
+            "underline": "boolean?",
+            "fill_color": "string?",
+            "number_format": "string?"
+          },
+          "output": "status",
+          "steps": [
+            { "action": "conditional",
+              "if": "{{bold}}",
+              "then": [
+                { "action": "wait_for_selector", "selector": "[aria-label='Bold']" },
+                { "action": "click",             "selector": "[aria-label='Bold']" }
+              ]
+            },
+            { "action": "conditional",
+              "if": "{{italic}}",
+              "then": [
+                { "action": "wait_for_selector", "selector": "[aria-label='Italic']" },
+                { "action": "click",             "selector": "[aria-label='Italic']" }
+              ]
+            },
+            { "action": "conditional",
+              "if": "{{underline}}",
+              "then": [
+                { "action": "wait_for_selector", "selector": "[aria-label='Underline']" },
+                { "action": "click",             "selector": "[aria-label='Underline']" }
+              ]
+            },
+            { "action": "conditional",
+              "if": "{{fill_color}}",
+              "then": [
+                { "action": "wait_for_selector", "selector": "[aria-label='Fill color']" },
+                { "action": "click",             "selector": "[aria-label='Fill color']" },
+                { "action": "wait_for_selector", "selector": "[aria-label='Fill color'] [role='menu'] [role='menuitem']" },
+                { "action": "click_text",        "text": "{{fill_color}}" }
+              ]
+            },
+            { "action": "conditional",
+              "if": "{{number_format}}",
+              "then": [
+                { "action": "wait_for_selector", "selector": "[aria-label='More formats']" },
+                { "action": "click",             "selector": "[aria-label='More formats']" },
+                { "action": "wait_for_selector", "selector": "[role='menu'] [role='menuitem']" },
+                { "action": "click_text",        "text": "{{number_format}}" }
+              ]
+            },
+            { "action": "extract_fields", "selector": "title::text", "output_key": "status" }
+          ]
+        },
+
+        {
+          "name": "insert_rows",
+          "description": "Insert rows relative to a target row using the 'Search the menus' box. position ∈ {'above','below'}.",
+          "input": { "target_row": "number", "count": "number", "position": "string" },
+          "output": "status",
+          "steps": [
+            { "action": "type", "selector": "input[aria-label='Name box']", "text": "{{target_row}}:{{target_row}}", "replace": true },
+            { "action": "press_enter" },
+
+            { "action": "wait_for_selector", "selector": "[aria-label='Search the menus']" },
+            { "action": "click",             "selector": "[aria-label='Search the menus']" },
+            { "action": "type",              "selector": "[aria-label='Search the menus']",
+              "text": "insert {{count}} row {{position}}" },
+            { "action": "press_enter" },
+
+            { "action": "extract_fields", "selector": "input[aria-label='Name box']::value", "output_key": "status" }
+          ]
+        },
+
+        {
+          "name": "insert_columns",
+          "description": "Insert columns relative to a target column using the 'Search the menus' box. position ∈ {'left','right'}. column like 'B'.",
+          "input": { "target_column": "string", "count": "number", "position": "string" },
+          "output": "status",
+          "steps": [
+            { "action": "type", "selector": "input[aria-label='Name box']", "text": "{{target_column}}:{{target_column}}", "replace": true },
+            { "action": "press_enter" },
+
+            { "action": "wait_for_selector", "selector": "[aria-label='Search the menus']" },
+            { "action": "click",             "selector": "[aria-label='Search the menus']" },
+            { "action": "type",              "selector": "[aria-label='Search the menus']",
+              "text": "insert {{count}} column {{position}}" },
+            { "action": "press_enter" },
+
+            { "action": "extract_fields", "selector": "input[aria-label='Name box']::value", "output_key": "status" }
+          ]
+        },
+
+        {
+          "name": "sort_range",
+          "description": "Sort a range by a given column within that range. order ∈ {'asc','desc'}. Uses 'Search the menus'.",
+          "input": { "range": "string", "by_column": "string", "order": "string" },
+          "output": "status",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "input[aria-label='Name box']" },
+            { "action": "click",             "selector": "input[aria-label='Name box']" },
+            { "action": "type",              "selector": "input[aria-label='Name box']", "input_key": "range", "replace": true },
+            { "action": "press_enter" },
+
+            { "action": "click", "selector": "[aria-label='Search the menus']" },
+            { "action": "type",
+              "selector": "[aria-label='Search the menus']",
+              "text": "sort range by column {{by_column}}, {{order=='asc' ? 'A to Z' : 'Z to A'}}" },
+            { "action": "press_enter" },
+
+            { "action": "extract_fields", "selector": "input[aria-label='Name box']::value", "output_key": "status" }
+          ]
+        },
+
+        {
+          "name": "create_filter",
+          "description": "Create a filter view for a selected range (or the whole sheet if none selected).",
+          "input": { "range": "string?" },
+          "output": "status",
+          "steps": [
+            { "action": "conditional",
+              "if": "{{range}}",
+              "then": [
+                { "action": "click", "selector": "input[aria-label='Name box']" },
+                { "action": "type",  "selector": "input[aria-label='Name box']", "input_key": "range", "replace": true },
+                { "action": "press_enter" }
+              ]
+            },
+            { "action": "click", "selector": "[aria-label='Search the menus']" },
+            { "action": "type",  "selector": "[aria-label='Search the menus']", "text": "create a filter" },
+            { "action": "press_enter" },
+            { "action": "extract_fields", "selector": "title::text", "output_key": "status" }
+          ]
+        },
+
+        {
+          "name": "read_visible_table",
+          "description": "Extract the visible grid cells on screen (user’s current viewport). Returns array of cells with aria-rowindex/aria-colindex and text.",
+          "output": "results",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "[role='grid'] [role='row'] [role='gridcell']" },
+            {
+              "action": "extract_list",
+              "selector": "[role='grid'] [role='row'] [role='gridcell']",
+              "schema": {
+                "row": "@aria-rowindex",
+                "col": "@aria-colindex",
+                "text": "::text"
+              },
+              "output_key": "results"
+            }
+          ]
+        },
+
+        {
+          "name": "run_macro_or_script",
+          "description": "Execute a named macro or Apps Script via the menu search box. Provide the exact menu phrase if possible.",
+          "input": { "command": "string" },
+          "output": "status",
+          "steps": [
+            { "action": "wait_for_selector", "selector": "[aria-label='Search the menus']" },
+            { "action": "click",             "selector": "[aria-label='Search the menus']" },
+            { "action": "type",              "selector": "[aria-label='Search the menus']", "input_key": "command", "replace": true },
+            { "action": "press_enter" },
+            { "action": "extract_fields",    "selector": "title::text", "output_key": "status" }
+          ]
+        }
+      ]
     }
       
   ]
