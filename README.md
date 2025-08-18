@@ -8,7 +8,7 @@
   <a href="https://discord.gg/AN4WZYXqR4">
     <img src="https://img.shields.io/discord/1298389425905991791?logo=discord&label=Discord&labelColor=2C2F33&color=5865F2" alt="Chat on Discord" />
   </a>
-  <img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPLv3-blue.svg" />
+  <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-blue.svg" />
 </p>
 
 <div align="center">
