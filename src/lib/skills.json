@@ -370,7 +370,7 @@
           "input": { "url": "string" },
           "output": "status",
           "steps": [
-            { "action": "navigate_to_url",   "url": "{{url}}" },
+            { "action": "navigate_to_url",   "url": "https://sheets.google.com/create" },
             { "action": "wait_for_selector", "selector": "[role='grid']" },
             { "action": "extract_fields",    "selector": "title::text", "output_key": "status" }
           ]
@@ -601,7 +601,6 @@
             { "action": "extract_fields", "selector": "title::text", "output_key": "status" }
           ]
         },
-
         {
           "name": "read_visible_table",
           "description": "Extract the visible grid cells on screen (user’s current viewport). Returns array of cells with aria-rowindex/aria-colindex and text.",
@@ -620,7 +619,6 @@
             }
           ]
         },
-
         {
           "name": "run_macro_or_script",
           "description": "Execute a named macro or Apps Script via the menu search box. Provide the exact menu phrase if possible.",

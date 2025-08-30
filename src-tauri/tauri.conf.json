@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "runtime",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "com.anytime.rt0421",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -43,7 +43,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM5OEVERDk0NkYxQTcwRkUKUldUK2NCcHZsTjJPT2R1dk56bkdKSXZTNGFMWFNNYU1xQ2w0TVRiand0N21rTG9lZGFrVmVsYUUK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMxRkNBQjkwMkM0REY4MDEKUldRQitFMHNrS3Y4d1VGZnFmeng5ZU1jajQwb2FWV1ZDSnZacDdNb0NDZkViY0NXNS85V0Nwck8K",
       "endpoints": [
         "https://github.com/runtime-org/runtime/releases/latest/download/latest.json"
       ]
